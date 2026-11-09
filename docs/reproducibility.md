@@ -9,7 +9,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
-schemasmith generate --n 240 --seed 42 --out data/raw/tickets.jsonl
+schemasmith generate --n 320 --seed 42 --out data/raw/tickets.jsonl
 schemasmith curate --raw data/raw/tickets.jsonl --out data/curated --seed 42
 schemasmith dpo \
   --alpaca data/curated/local/train/sft_alpaca.jsonl \
@@ -60,12 +60,12 @@ Launch only after the preview ceiling is acceptable. The job does not clone GitH
 ```bash
 export HF_TOKEN=...
 python -m pip wheel --no-deps -w dist .
-schemasmith jobs sft --namespace HF_USER --n 240 --upload-wheel dist/schemasmith-0.2.0-py3-none-any.whl --launch
-schemasmith jobs dpo --namespace HF_USER --n 240 --launch
-schemasmith jobs eval --namespace HF_USER --n 240 --launch
+schemasmith jobs sft --namespace HF_USER --n 320 --upload-wheel dist/schemasmith-0.2.0-py3-none-any.whl --launch
+schemasmith jobs dpo --namespace HF_USER --n 320 --launch
+schemasmith jobs eval --namespace HF_USER --n 320 --launch
 ```
 
-The default flavor is `l4x1`. AlignTune 0.1.32 runs DPO in bf16, which transformers refuses on a T4. The image is `pytorch/pytorch:2.13.0-cuda12.6-cudnn9-runtime` because AlignTune needs torch below 2.14. `--n 240` gives a 180 / 30 / 30 split. SFT runs about 3 epochs and DPO about 2.
+The default flavor is `l4x1`. AlignTune 0.1.32 runs DPO in bf16, which transformers refuses on a T4. The image is `pytorch/pytorch:2.13.0-cuda12.6-cudnn9-runtime` because AlignTune needs torch below 2.14. `--n 320` gives a 219 / 37 / 64 split, with whole sub-scenarios and templates held out of test. SFT runs about 3 epochs and DPO about 2.
 
 SFT and DPO both train on the Tiny Aya chat template, which is the format the compare prompts with. AlignTune builds a user / assistant `messages` pair for SFT. For DPO, AlignTune flattens message lists to plain text, so `chat_format_dpo_dir` renders the template into the strings before training. Launch refreshes the hourly rate from the Hub and prints the timeout ceiling before `run_job`. The token is passed as a secret. Job outputs are pushed to private repos. The disk on a job is ephemeral, which is why the push exists.
 

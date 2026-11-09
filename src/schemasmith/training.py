@@ -22,8 +22,9 @@ from typing import Any
 MODEL_ID = "CohereLabs/tiny-aya-global"
 CORE_MODEL_ID = MODEL_ID
 
-# Default data size for GPU runs. 240 rows gives a 180 / 30 / 30 local split.
-DEFAULT_N = 240
+# Default data size for GPU runs. 320 rows gives a 219 / 37 / 64 split with
+# held-out templates in test.
+DEFAULT_N = 320
 SFT_EPOCHS = 3
 DPO_EPOCHS = 2
 BATCH_SIZE = 1
@@ -37,7 +38,7 @@ def steps_for(train_rows: int, epochs: int) -> int:
     return math.ceil(train_rows / (BATCH_SIZE * GRAD_ACCUM)) * epochs
 
 
-def lora_sft_kwargs(*, dataset_dir: str, output_dir: str, train_rows: int = 180) -> dict[str, Any]:
+def lora_sft_kwargs(*, dataset_dir: str, output_dir: str, train_rows: int = 219) -> dict[str, Any]:
     """Arguments for ``aligntune.core.backend_factory.create_sft_trainer``.
 
     AlignTune turns the alpaca rows into a user / assistant ``messages`` pair
@@ -89,7 +90,7 @@ def lora_dpo_kwargs(
     dataset_dir: str,
     output_dir: str,
     model_name: str,
-    train_rows: int = 158,
+    train_rows: int = 192,
 ) -> dict[str, Any]:
     """Arguments for ``aligntune.core.backend_factory.create_rl_trainer``.
 
