@@ -77,10 +77,15 @@ def test_dpo_notebook_calls_align_tune():
 
 
 def test_space_app_builds():
-    pytest.importorskip("gradio")
-    from space.app import demo
+    import importlib.util
 
-    assert demo is not None
+    pytest.importorskip("gradio")
+    path = Path("space/app.py").resolve()
+    spec = importlib.util.spec_from_file_location("schemasmith_space_app", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.demo is not None
 
 
 def test_remote_module_does_not_import_aligntune():
