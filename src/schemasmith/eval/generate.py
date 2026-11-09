@@ -20,6 +20,33 @@ def require_cuda_backend() -> None:
         raise RuntimeError("compare needs a CUDA GPU. Nothing was written.")
 
 
+# Tokens that end an assistant turn in the Tiny Aya chat template. Training
+# targets end with these, so generation stops on them the way a chat server does.
+TURN_END_TOKENS = ("<|END_RESPONSE|>", "<|END_OF_TURN_TOKEN|>")
+
+
+def stop_token_ids(tokenizer, config_eos) -> list[int]:
+    """Config EOS plus the chat template's turn-end tokens.
+
+    The Tiny Aya config names ``<EOS_TOKEN>`` as EOS, but a chat turn ends with
+    ``<|END_RESPONSE|><|END_OF_TURN_TOKEN|>``. Stopping only on the config EOS
+    lets a fine-tuned model run past the end of its answer.
+    """
+    ids: set[int] = set()
+    if isinstance(config_eos, int):
+        ids.add(config_eos)
+    elif config_eos:
+        ids.update(int(i) for i in config_eos)
+    if getattr(tokenizer, "eos_token_id", None) is not None:
+        ids.add(int(tokenizer.eos_token_id))
+    unk = getattr(tokenizer, "unk_token_id", None)
+    for token in TURN_END_TOKENS:
+        token_id = tokenizer.convert_tokens_to_ids(token)
+        if isinstance(token_id, int) and token_id != unk:
+            ids.add(token_id)
+    return sorted(ids)
+
+
 def generate_texts(
     prompts: Sequence[str],
     *,
@@ -53,6 +80,7 @@ def generate_texts(
             model = PeftModel.from_pretrained(model, adapter)
     model.eval()
     device = next(model.parameters()).device
+    stops = stop_token_ids(tokenizer, model.generation_config.eos_token_id)
     outputs: list[str] = []
     for prompt in prompts:
         messages = [{"role": "user", "content": prompt}]
@@ -70,6 +98,8 @@ def generate_texts(
                 **inputs,
                 max_new_tokens=max_new_tokens,
                 do_sample=False,
+                eos_token_id=stops,
+                pad_token_id=tokenizer.pad_token_id,
             )
         new_tokens = generated[0, prompt_len:]
         outputs.append(tokenizer.decode(new_tokens, skip_special_tokens=True))

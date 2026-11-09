@@ -26,7 +26,7 @@ CORE_MODEL_ID = MODEL_ID
 # held-out templates in test.
 DEFAULT_N = 320
 SFT_EPOCHS = 3
-DPO_EPOCHS = 2
+DPO_EPOCHS = 1
 BATCH_SIZE = 1
 GRAD_ACCUM = 8
 
@@ -117,7 +117,9 @@ def lora_dpo_kwargs(
         "max_steps": steps,
         "batch_size": BATCH_SIZE,
         "gradient_accumulation_steps": GRAD_ACCUM,
-        "learning_rate": 5e-5,
+        # 5e-5 for 2 epochs pushed the policy off valid JSON on the
+        # held-out compare. One epoch at 2e-5 keeps it closer to SFT.
+        "learning_rate": 2e-5,
         "beta": 0.1,
         "max_seq_length": 768,
         "use_peft": True,
