@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "schemasmith"
+version = "0.1.0"
+description = "Contract-gated multilingual ticket extraction with a small open model."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "nightmoose" }]
+dependencies = [
+  "jsonschema==4.26.0",
+  "PyYAML==6.0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.4.2",
+  "ruff==0.8.6",
+]
+
+[project.scripts]
+schemasmith = "schemasmith.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+schemasmith = ["contracts/*.json", "contracts/*.yaml"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
