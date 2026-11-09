@@ -46,6 +46,14 @@ The 0.1.32 sdist (not a training run) shows:
 
 `create_sft_trainer(...).train()` was not executed. No adapter was produced.
 
+### DPO, from the same 0.1.32 sdist
+
+`create_rl_trainer` reads `algorithm`, `config_name`, `use_peft` (default true), `lora_r`, `lora_alpha`, `lora_dropout`, `lora_target_modules`, `beta` (default 0.1), `quantization`, `gradient_checkpointing`, `eval_strategy`, `load_best_model_at_end`, `save_strategy`, `save_steps`, `logging_steps`, `report_to`, `warmup_ratio`, and `group_by_length`. It does not mention `bf16` or `attn_implementation`, so the DPO kwargs omit them.
+
+The RL data loader forwards `config_name` to the dataset loader. Column fallbacks for DPO include `prompt`, `chosen`, and `rejected`. `ColumnMapper._normalize_preference` keeps those names for TRL.
+
+`build_model` loads `model_name` with `from_pretrained` and then applies a new LoRA. No adapter-resume argument showed up in that path. The DPO notebook therefore merges the SFT adapter into a local directory and passes that directory as `model_name`. `create_rl_trainer(...).train()` was not executed.
+
 ## Assumed, not executed
 
 - `datasets.load_dataset(curatorkit_output_dir, "sft_alpaca")` succeeds on the README CuratorKIT writes. The README shape was inspected. `load_dataset` was not called.

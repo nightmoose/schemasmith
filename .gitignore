@@ -11,4 +11,5 @@ data/raw/
 data/curated/
 data/notebook/
 reports/
+dist/
 .ipynb_checkpoints/

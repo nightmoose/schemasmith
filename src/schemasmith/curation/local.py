@@ -67,14 +67,13 @@ def curate_local(
         "kept_count": len(gated.kept),
         "rejected": gated.rejected,
         "split_counts": {name: len(rows) for name, rows in splits.items()},
-        "note": (
-            "Local contract gate and exact text dedup. " "This folder is not a CuratorKIT run."
-        ),
+        "note": ("Local contract gate and exact text dedup. This folder is not a CuratorKIT run."),
     }
     (output_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+    (output_dir / "README.md").write_text(_hf_readme(), encoding="utf-8")
     return CurationResult(
         input_count=len(records),
         kept=gated.kept,
@@ -134,6 +133,29 @@ def assign_splits(
         "validation": items[n_train : n_train + n_val],
         "test": items[n_train + n_val :],
     }
+
+
+def _hf_readme() -> str:
+    """Dataset card so AlignTune can load the local export with subset sft_alpaca."""
+    files = []
+    for split in ("train", "validation", "test"):
+        files.append(f"    - split: {split}\n      path: {split}/sft_alpaca.jsonl")
+    alpaca_files = "\n".join(files)
+    message_files = alpaca_files.replace("sft_alpaca.jsonl", "sft_messages.jsonl")
+    return (
+        "---\n"
+        "configs:\n"
+        "- config_name: sft_alpaca\n"
+        "  default: true\n"
+        "  data_files:\n"
+        f"{alpaca_files}\n"
+        "- config_name: sft_messages\n"
+        "  data_files:\n"
+        f"{message_files}\n"
+        "---\n\n"
+        "# SchemaSmith local export\n\n"
+        "Contract gate and exact dedup. This folder is not a CuratorKIT run.\n"
+    )
 
 
 def _gate(records: list[TicketRecord]) -> _Gate:
