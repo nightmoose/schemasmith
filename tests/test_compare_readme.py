@@ -94,4 +94,10 @@ def test_shipped_readme_markers_and_license():
     expected = Path("tests/fixtures/license_section.md").read_text(encoding="utf-8")
     assert readme[readme.index("## Licenses") :] == expected
     assert START in readme and END in readme
-    assert "| Parse rate | TBD | TBD | TBD | not yet measured |" in readme
+    results = Path("results/compare.json")
+    if results.exists():
+        # The shipped table must be exactly what the shipped results file renders.
+        table = render_metrics_table(load_results(results))
+        assert START + "\n" + table + "\n" + END in readme
+    else:
+        assert "| Parse rate | TBD | TBD | TBD | not yet measured |" in readme

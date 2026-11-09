@@ -15,7 +15,7 @@ The pipeline is:
 3. AlignTune LoRA supervised fine-tuning of Tiny Aya Global, then a DPO LoRA on those weights.
 4. AuditKIT plus the contract validator for the held-out compare of base, SFT, and DPO.
 
-Training has not been run. Every model metric below is **TBD**.
+SFT, DPO, and the held-out compare were run on Hugging Face Jobs (one L4 GPU). The results table is generated from `results/compare.json`.
 
 ## Contract
 
@@ -147,27 +147,39 @@ Core model and license: Tiny Aya Global, `CohereLabs/tiny-aya-global`, CC-BY-NC-
 
 Data: synthetic tickets generated in this repo. No third-party training set. The contract files are in `src/schemasmith/contracts/`.
 
-Artifacts: not uploaded yet. After the GPU runs, `schemasmith publish --public --execute` is what makes the dataset, both adapters, the eval logs, and the collection public and ungated.
+Artifacts: the dataset, both adapters, and the eval logs are staged in private Hub repos. `schemasmith publish --public --execute` is what makes them and the collection public and ungated.
 
-Experiments and before/after: not run. The table below stays TBD until `schemasmith compare` rewrites it from a results file.
+Experiments and before/after: one run of base, SFT, and DPO on the same 64 held-out tickets. The table below was written by `schemasmith compare --results results/compare.json --readme README.md`.
 
 ## Results
 
-Not measured. No base-model run and no fine-tune have been executed in this revision.
+Setup: 320 generated tickets, seed 42. The test split is 64 tickets, 8 per language and 16 per category, 56 of them non-English. Train is 219 and validation 37. Test uses one held-out sub-scenario per category, two held-out header formats, and held-out severity, opener, closer, and chatter phrasings. After masking digits and tier words, no test ticket matches a train ticket (`curate_local` refuses to write a split otherwise, and `tests/test_split_holdout.py` checks it). SFT ran 3 epochs (84 steps) and DPO 2 epochs (48 steps) on one L4. Per-system outputs are in the eval-logs repo.
 
 <!-- SCHEMASMITH_METRICS_START -->
 | Metric | Base `tiny-aya-global` | SFT | DPO | Status |
 | --- | --- | --- | --- | --- |
-| Parse rate | TBD | TBD | TBD | not yet measured |
-| Schema-valid rate | TBD | TBD | TBD | not yet measured |
-| Field-level exact match | TBD | TBD | TBD | not yet measured |
-| Unsupported-value rate | TBD | TBD | TBD | not yet measured |
-| Non-English contract-valid rate | TBD | TBD | TBD | not yet measured |
+| Parse rate | 100.0% | 100.0% | 96.9% | measured |
+| Schema-valid rate | 46.9% | 100.0% | 96.9% | measured |
+| Field-level exact match | 71.4% | 98.0% | 93.3% | measured |
+| Unsupported-value rate | 32.9% | 0.0% | 0.0% | measured |
+| Non-English contract-valid rate | 46.4% | 100.0% | 96.4% | measured |
+
+Held-out rows: 64. Source file must stay next to this table. Status is measured only because this block was rewritten from that file.
 <!-- SCHEMASMITH_METRICS_END -->
+
+What the numbers show: SFT moved the base model from 46.9% to 100.0% schema-valid and removed unsupported values on this split. DPO on top of SFT scored lower than SFT here. Two of its 64 outputs were malformed JSON that repeated the object, and its severity and category accuracy dropped. That is the measured result, not a tuning claim.
+
+### Limitations
+
+- **Synthetic data.** Every ticket comes from this repo's templates in eight languages. Held-out templates make the test harder than a random split, but the tickets still share structure, vocabulary, and the header subject lines with training. Real tickets will be messier.
+- **Single seed, single run.** One data seed (42), one training run per stage, 64 test tickets. A one-row change is 1.6 points. No confidence intervals were computed.
+- **Base model code fences.** The base model wrapped its JSON in a Markdown code fence in 49 of 64 outputs. The parser accepts fenced JSON, so this does not lower the base parse rate. SFT and DPO return bare JSON. A strict raw-JSON parse would score the base model lower.
+- **Severity is a convention.** The instruction defines the four severity levels, and each ticket states its level with a cue sentence. The score measures reading that cue, not judging real urgency.
+- **DPO pairs are planted failures.** Rejected answers are scripted corruptions of the gold label, not model outputs. On this run that DPO step hurt.
 
 ## What is left
 
-Run SFT, DPO, and the held-out compare on a GPU. Then `schemasmith publish --namespace HF_USER --public --execute` so judges can open the repos without an approval step. The metrics block is still TBD. A criterion map is in `docs/rubric_map.md`.
+`schemasmith publish --namespace HF_USER --public --execute` so judges can open the repos without an approval step. A criterion map is in `docs/rubric_map.md`.
 
 ## API notes
 

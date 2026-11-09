@@ -1,0 +1,85 @@
+{
+  "measurement": "held-out model compare",
+  "model_id": "CohereLabs/tiny-aya-global",
+  "core_model": "CohereLabs/tiny-aya-global",
+  "data": "seed-42 local test split of 320 generated tickets",
+  "n": 64,
+  "adapters": {
+    "sft": "nightmoose/schemasmith-tiny-aya-sft",
+    "dpo": "nightmoose/schemasmith-tiny-aya-dpo"
+  },
+  "systems": {
+    "base": {
+      "n": 64,
+      "n_parsed": 64,
+      "n_schema_valid": 30,
+      "n_contract_valid": 30,
+      "parse_rate": 1.0,
+      "schema_valid_rate": 0.46875,
+      "contract_valid_rate": 0.46875,
+      "field_exact_match": 0.7142857142857143,
+      "per_field_accuracy": {
+        "ticket_id": 0.734375,
+        "customer_tier": 1.0,
+        "category": 0.578125,
+        "severity": 0.5,
+        "order_ref": 0.421875,
+        "refund_amount_usd": 0.765625,
+        "language": 1.0
+      },
+      "unsupported_value_rate": 0.3291139240506329,
+      "unsupported_field_count": 52,
+      "grounded_field_count": 158,
+      "non_english_contract_valid_rate": 0.4642857142857143,
+      "n_non_english": 56
+    },
+    "sft": {
+      "n": 64,
+      "n_parsed": 64,
+      "n_schema_valid": 64,
+      "n_contract_valid": 64,
+      "parse_rate": 1.0,
+      "schema_valid_rate": 1.0,
+      "contract_valid_rate": 1.0,
+      "field_exact_match": 0.9799107142857143,
+      "per_field_accuracy": {
+        "ticket_id": 1.0,
+        "customer_tier": 1.0,
+        "category": 0.921875,
+        "severity": 0.953125,
+        "order_ref": 1.0,
+        "refund_amount_usd": 1.0,
+        "language": 0.984375
+      },
+      "unsupported_value_rate": 0.0,
+      "unsupported_field_count": 0,
+      "grounded_field_count": 106,
+      "non_english_contract_valid_rate": 1.0,
+      "n_non_english": 56
+    },
+    "dpo": {
+      "n": 64,
+      "n_parsed": 62,
+      "n_schema_valid": 62,
+      "n_contract_valid": 62,
+      "parse_rate": 0.96875,
+      "schema_valid_rate": 0.96875,
+      "contract_valid_rate": 0.96875,
+      "field_exact_match": 0.9330357142857143,
+      "per_field_accuracy": {
+        "ticket_id": 0.96875,
+        "customer_tier": 0.96875,
+        "category": 0.875,
+        "severity": 0.828125,
+        "order_ref": 0.96875,
+        "refund_amount_usd": 0.96875,
+        "language": 0.953125
+      },
+      "unsupported_value_rate": 0.0,
+      "unsupported_field_count": 0,
+      "grounded_field_count": 101,
+      "non_english_contract_valid_rate": 0.9642857142857143,
+      "n_non_english": 56
+    }
+  }
+}
