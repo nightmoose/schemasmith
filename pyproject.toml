@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "schemasmith"
-version = "0.1.0"
+version = "0.2.0"
 description = "Contract-gated multilingual ticket extraction with a small open model."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -18,7 +18,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest==8.4.2",
-  "ruff==0.8.6",
+  "ruff==0.9.10",
+  "gradio==5.49.1",
+]
+hf = [
+  "huggingface_hub==1.4.1",
 ]
 
 [project.scripts]
@@ -33,7 +37,7 @@ schemasmith = ["contracts/*.json", "contracts/*.yaml"]
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-src = ["src", "tests"]
+src = ["src", "tests", "space", "scripts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

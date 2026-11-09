@@ -1,0 +1,3 @@
+# Apache-2.0 Hub client. Not imported by the default test run.
+# Used only by `schemasmith jobs --launch` and `schemasmith publish --execute`.
+huggingface_hub==1.4.1
