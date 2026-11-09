@@ -2,7 +2,7 @@
 
 This module does not import AlignTune. The notebook passes the dict to
 ``create_sft_trainer``. Keyword names were read from AlignTune 0.1.32
-``create_sft_trainer`` (sdist). The training call itself has not been run.
+``create_sft_trainer`` (sdist). Both calls were run on HF Jobs (L4).
 
 ``subset`` is ``sft_alpaca`` because that release's dataset adapter detects
 ``instruction`` plus ``output``. A messages-only table is not detected.
@@ -15,25 +15,47 @@ CuratorKIT's README example passes ``config_name="sft_messages"``;
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 # Core submission model. The other six Cohere hackathon models are not used.
 MODEL_ID = "CohereLabs/tiny-aya-global"
 CORE_MODEL_ID = MODEL_ID
 
+# Default data size for GPU runs. 240 rows gives a 180 / 30 / 30 local split.
+DEFAULT_N = 240
+SFT_EPOCHS = 3
+DPO_EPOCHS = 2
+BATCH_SIZE = 1
+GRAD_ACCUM = 8
 
-def lora_sft_kwargs(*, dataset_dir: str, output_dir: str) -> dict[str, Any]:
-    """Arguments for ``aligntune.core.backend_factory.create_sft_trainer``."""
+
+def steps_for(train_rows: int, epochs: int) -> int:
+    """Optimizer steps for ``epochs`` passes over ``train_rows`` rows."""
+    if train_rows < 1:
+        raise ValueError("train_rows must be at least 1")
+    return math.ceil(train_rows / (BATCH_SIZE * GRAD_ACCUM)) * epochs
+
+
+def lora_sft_kwargs(*, dataset_dir: str, output_dir: str, train_rows: int = 180) -> dict[str, Any]:
+    """Arguments for ``aligntune.core.backend_factory.create_sft_trainer``.
+
+    AlignTune turns the alpaca rows into a user / assistant ``messages`` pair
+    (user turn is instruction, blank line, ticket) and TRL tokenizes it with
+    the model chat template. That is the same format the compare prompts with.
+    Steps are about ``SFT_EPOCHS`` passes over ``train_rows``.
+    """
+    steps = steps_for(train_rows, SFT_EPOCHS)
     return {
         "model_name": MODEL_ID,
         "dataset_name": dataset_dir,
         "subset": "sft_alpaca",
         "backend": "trl",
         "output_dir": output_dir,
-        "num_epochs": 1,
-        "max_steps": 40,
-        "batch_size": 1,
-        "gradient_accumulation_steps": 8,
+        "num_epochs": SFT_EPOCHS,
+        "max_steps": steps,
+        "batch_size": BATCH_SIZE,
+        "gradient_accumulation_steps": GRAD_ACCUM,
         "learning_rate": 2e-4,
         "max_seq_length": 768,
         "use_peft": True,
@@ -54,7 +76,7 @@ def lora_sft_kwargs(*, dataset_dir: str, output_dir: str) -> dict[str, Any]:
         "eval_strategy": "no",
         "load_best_model_at_end": False,
         "save_strategy": "steps",
-        "save_steps": 40,
+        "save_steps": steps,
         "logging_steps": 5,
         "report_to": "none",
         "warmup_ratio": 0.03,
@@ -67,6 +89,7 @@ def lora_dpo_kwargs(
     dataset_dir: str,
     output_dir: str,
     model_name: str,
+    train_rows: int = 158,
 ) -> dict[str, Any]:
     """Arguments for ``aligntune.core.backend_factory.create_rl_trainer``.
 
@@ -76,7 +99,12 @@ def lora_dpo_kwargs(
     passed because the RL data loader forwards it to ``load_dataset``.
     ``attn_implementation`` and ``bf16`` are not read by ``create_rl_trainer``
     in that sdist, so they are omitted.
+
+    Steps are about ``DPO_EPOCHS`` passes over ``train_rows`` pairs. Prompts
+    and responses should already carry the chat template; see
+    ``schemasmith.data.preferences.chat_format_dpo_dir``.
     """
+    steps = steps_for(train_rows, DPO_EPOCHS)
     return {
         "model_name": model_name,
         "dataset_name": dataset_dir,
@@ -84,10 +112,10 @@ def lora_dpo_kwargs(
         "algorithm": "dpo",
         "backend": "trl",
         "output_dir": output_dir,
-        "num_epochs": 1,
-        "max_steps": 30,
-        "batch_size": 1,
-        "gradient_accumulation_steps": 8,
+        "num_epochs": DPO_EPOCHS,
+        "max_steps": steps,
+        "batch_size": BATCH_SIZE,
+        "gradient_accumulation_steps": GRAD_ACCUM,
         "learning_rate": 5e-5,
         "beta": 0.1,
         "max_seq_length": 768,
@@ -107,7 +135,7 @@ def lora_dpo_kwargs(
         "eval_strategy": "no",
         "load_best_model_at_end": False,
         "save_strategy": "steps",
-        "save_steps": 30,
+        "save_steps": steps,
         "logging_steps": 5,
         "report_to": "none",
         "warmup_ratio": 0.03,

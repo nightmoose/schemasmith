@@ -51,7 +51,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
-schemasmith generate --n 24 --seed 42 --out data/raw/tickets.jsonl
+schemasmith generate --n 240 --seed 42 --out data/raw/tickets.jsonl
 schemasmith curate --raw data/raw/tickets.jsonl --out data/curated --seed 42
 ```
 

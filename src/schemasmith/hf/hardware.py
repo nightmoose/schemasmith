@@ -1,9 +1,9 @@
 """Published Hugging Face Jobs rates used as a preview ceiling.
 
-Figures are the t4-small and t4-medium rows from the Hugging Face Jobs
-hardware table (https://huggingface.co/docs/huggingface_hub/guides/jobs),
-retrieved 2026-11-09. Launch refreshes the rate with ``list_jobs_hardware``
-before it starts a job. A dry run does not call the Hub.
+Figures are the t4-small, t4-medium, and l4x1 rows from the Hugging Face
+Jobs hardware list (``list_jobs_hardware``), retrieved 2026-11-09. Launch
+refreshes the rate with ``list_jobs_hardware`` before it starts a job. A dry
+run does not call the Hub.
 """
 
 from __future__ import annotations
@@ -15,9 +15,12 @@ SOURCE = "https://huggingface.co/docs/huggingface_hub/guides/jobs"
 HOURLY_USD = {
     "t4-small": 0.40,
     "t4-medium": 0.60,
+    "l4x1": 0.80,
 }
 
-DEFAULT_FLAVOR = "t4-small"
+# L4 is the default: DPO in AlignTune 0.1.32 always runs in bf16, and
+# transformers refuses bf16 training on a T4.
+DEFAULT_FLAVOR = "l4x1"
 DEFAULT_TIMEOUT_SECONDS = 3600
 MAX_TIMEOUT_SECONDS = 7200
 

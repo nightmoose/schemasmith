@@ -47,3 +47,4 @@ def test_lora_kwargs_stay_on_the_trl_backend():
     assert kwargs["use_peft"] is True
     assert kwargs["quantization"]["load_in_4bit"] is True
     assert "unsloth" not in json.dumps(kwargs).lower()
+    assert kwargs["max_steps"] == 69  # 180 rows, batch 8, 3 epochs

@@ -29,6 +29,7 @@ from schemasmith.hf.jobs import (
     live_hardware_rates,
     render_plan,
     token_from_env,
+    upload_source_wheel,
 )
 from schemasmith.hf.publish import build_publish_plan, publish
 from schemasmith.prompts import user_content
@@ -92,7 +93,9 @@ def main(argv: list[str] | None = None) -> int:
     jobs.add_argument("--namespace", required=True)
     jobs.add_argument("--flavor", default=DEFAULT_FLAVOR)
     jobs.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS)
-    jobs.add_argument("--repo-ref", default="main")
+    jobs.add_argument("--repo-ref", default="main", help="revision of the private source repo")
+    jobs.add_argument("--n", type=int, default=None, help="tickets to generate in the job")
+    jobs.add_argument("--upload-wheel", default=None, help="built wheel to upload before launch")
     jobs.add_argument("--launch", action="store_true")
 
     upload = sub.add_parser("publish", help="preview a private Hub upload")
@@ -245,6 +248,7 @@ def _jobs(args: argparse.Namespace) -> int:
         flavor=args.flavor,
         timeout_seconds=args.timeout,
         repo_ref=args.repo_ref,
+        n_tickets=args.n,
     )
     print(render_plan(plan))
     if not args.launch:
@@ -252,6 +256,10 @@ def _jobs(args: argparse.Namespace) -> int:
         return 0
     token = token_from_env()
     from huggingface_hub import run_job
+
+    if args.upload_wheel:
+        repo_id = upload_source_wheel(args.namespace, args.upload_wheel, token)
+        print(f"uploaded wheel to private {repo_id}")
 
     launch_plan(plan, token=token, run_job=run_job, hardware_lookup=live_hardware_rates)
     return 0

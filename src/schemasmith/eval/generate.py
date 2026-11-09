@@ -25,9 +25,15 @@ def generate_texts(
     *,
     model_id: str,
     adapter: str | None = None,
+    merge_adapter: str | None = None,
     max_new_tokens: int = 256,
 ) -> list[str]:
-    """Generate one completion per prompt. Loads one model, then frees it."""
+    """Generate one completion per prompt. Loads one model, then frees it.
+
+    ``merge_adapter`` is merged into the base weights before ``adapter`` is
+    applied. The DPO adapter was trained on SFT-merged weights, so scoring it
+    needs the SFT adapter merged first.
+    """
     require_cuda_backend()
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -38,28 +44,34 @@ def generate_texts(
         torch_dtype=torch.bfloat16,
         device_map="auto",
     )
-    if adapter:
+    if merge_adapter or adapter:
         from peft import PeftModel
 
-        model = PeftModel.from_pretrained(model, adapter)
+        if merge_adapter:
+            model = PeftModel.from_pretrained(model, merge_adapter).merge_and_unload()
+        if adapter:
+            model = PeftModel.from_pretrained(model, adapter)
     model.eval()
     device = next(model.parameters()).device
     outputs: list[str] = []
     for prompt in prompts:
         messages = [{"role": "user", "content": prompt}]
-        input_ids = tokenizer.apply_chat_template(
+        # transformers 5 returns a BatchEncoding here, not a tensor.
+        inputs = tokenizer.apply_chat_template(
             messages,
             tokenize=True,
             add_generation_prompt=True,
+            return_dict=True,
             return_tensors="pt",
         ).to(device)
+        prompt_len = inputs["input_ids"].shape[-1]
         with torch.no_grad():
             generated = model.generate(
-                input_ids,
+                **inputs,
                 max_new_tokens=max_new_tokens,
                 do_sample=False,
             )
-        new_tokens = generated[0, input_ids.shape[-1] :]
+        new_tokens = generated[0, prompt_len:]
         outputs.append(tokenizer.decode(new_tokens, skip_special_tokens=True))
     del model
     if torch.cuda.is_available():
