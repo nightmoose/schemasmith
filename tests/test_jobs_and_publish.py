@@ -12,8 +12,8 @@ def test_job_preview_uses_the_small_gpu_and_hides_the_token(monkeypatch):
     monkeypatch.setenv("HF_TOKEN", "test-token-not-a-real-key")
     plan = build_plan("sft", namespace="example-user", timeout_seconds=3600)
     text = render_plan(plan)
-    assert plan.flavor == "t4-small"
-    assert plan.ceiling_usd == pytest.approx(0.40)
+    assert plan.flavor == "l4x1"
+    assert plan.ceiling_usd == pytest.approx(0.80)
     assert "test-token-not-a-real-key" not in text
     assert "HF_TOKEN" not in plan.command[-1]
     assert "private" in text
@@ -30,13 +30,13 @@ def test_launch_refreshes_the_rate_then_calls_run_job():
         return {"id": "job-1"}
 
     def lookup():
-        return {"t4-small": 0.5, "t4-medium": 0.6}
+        return {"t4-small": 0.5, "t4-medium": 0.6, "l4x1": 0.8}
 
     launch_plan(plan, token="secret-token", run_job=run_job, hardware_lookup=lookup)
     assert seen["secrets"] == {"HF_TOKEN": "secret-token"}
     assert seen["token"] == "secret-token"
     assert seen["namespace"] == "example-user"
-    assert seen["flavor"] == "t4-small"
+    assert seen["flavor"] == "l4x1"
     assert seen["timeout"] == 1800
     assert seen["env"]["SCHEMASMITH_PUSH"] == "1"
     assert "secret-token" not in json.dumps(seen["command"])
@@ -116,3 +116,35 @@ def test_execute_passes_private_and_does_not_default_the_collection():
     assert collection["namespace"] == "example-user"
     repos = [item[1] for item in calls if item[0] == "repo"]
     assert all(item["private"] is True for item in repos)
+
+
+def test_job_installs_the_private_wheel_not_github():
+    plan = build_plan("sft", namespace="example-user", n_tickets=240)
+    shell = plan.command[-1]
+    assert "github.com" not in shell
+    assert "git+" not in shell
+    assert "example-user/schemasmith-src" in shell
+    assert "pytorch/pytorch:2.13.0" in plan.image
+    assert plan.env["PIP_BREAK_SYSTEM_PACKAGES"] == "1"
+    assert plan.env["SCHEMASMITH_N"] == "240"
+    assert plan.secret_names == ("HF_TOKEN",)
+
+
+def test_upload_source_wheel_creates_a_private_repo(tmp_path):
+    from schemasmith.hf.jobs import WHEEL, upload_source_wheel
+
+    calls = []
+
+    class FakeApi:
+        def create_repo(self, **kwargs):
+            calls.append(("create", kwargs))
+
+        def upload_file(self, **kwargs):
+            calls.append(("upload", kwargs))
+
+    wheel = tmp_path / WHEEL
+    wheel.write_bytes(b"x")
+    repo = upload_source_wheel("example-user", str(wheel), "tok", api=FakeApi())
+    assert repo == "example-user/schemasmith-src"
+    assert calls[0][1]["private"] is True
+    assert calls[1][1]["path_in_repo"] == WHEEL

@@ -47,3 +47,28 @@ def test_lora_kwargs_stay_on_the_trl_backend():
     assert kwargs["use_peft"] is True
     assert kwargs["quantization"]["load_in_4bit"] is True
     assert "unsloth" not in json.dumps(kwargs).lower()
+    assert kwargs["max_steps"] == 84  # 219 rows, batch 8, 3 epochs
+
+
+def test_generation_stops_on_chat_turn_end_tokens():
+    from schemasmith.eval.generate import stop_token_ids
+
+    class Tok:
+        eos_token_id = 6
+        unk_token_id = 4
+        ids = {"<|END_RESPONSE|>": 261001, "<|END_OF_TURN_TOKEN|>": 6}
+
+        def convert_tokens_to_ids(self, token):
+            return self.ids.get(token, self.unk_token_id)
+
+    assert stop_token_ids(Tok(), 3) == [3, 6, 261001]
+    assert stop_token_ids(Tok(), [3, 7]) == [3, 6, 7, 261001]
+
+
+def test_dpo_is_one_gentle_epoch():
+    from schemasmith.training import lora_dpo_kwargs
+
+    kwargs = lora_dpo_kwargs(dataset_dir="d", output_dir="o", model_name="m")
+    assert kwargs["num_epochs"] == 1
+    assert kwargs["max_steps"] == 24  # 192 pairs, batch 8, 1 epoch
+    assert kwargs["learning_rate"] == 2e-5

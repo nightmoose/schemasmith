@@ -13,6 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from schemasmith import __version__
 from schemasmith.hf.hardware import (
     DEFAULT_FLAVOR,
     DEFAULT_TIMEOUT_SECONDS,
@@ -21,8 +22,13 @@ from schemasmith.hf.hardware import (
     ceiling_usd,
 )
 
-REPO_URL = "https://github.com/nightmoose/schemasmith.git"
-IMAGE = "pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel"
+# The GitHub repo stays private until publish day, so jobs install a wheel
+# from a private Hub model repo, read with the HF_TOKEN job secret.
+SRC_REPO_NAME = "schemasmith-src"
+WHEEL = f"schemasmith-{__version__}-py3-none-any.whl"
+# AlignTune 0.1.32 needs torch < 2.14. Matching the image avoids a torch swap.
+IMAGE = "pytorch/pytorch:2.13.0-cuda12.6-cudnn9-runtime"
+LEXSI_PINS = "curatorkit==0.1.23 auditkit==1.1.6 aligntune==0.1.32"
 JOBS = ("sft", "dpo", "eval")
 
 HardwareLookup = Callable[[], dict[str, float]]
@@ -77,6 +83,7 @@ def build_plan(
     flavor: str = DEFAULT_FLAVOR,
     timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
     repo_ref: str = "main",
+    n_tickets: int | None = None,
     hourly: dict[str, float] | None = None,
     rate_source: str = f"published table {SOURCE} retrieved with the hardware module",
 ) -> JobPlan:
@@ -88,7 +95,7 @@ def build_plan(
     command = [
         "bash",
         "-lc",
-        _remote_shell(kind, repo_ref),
+        _remote_shell(kind, namespace, repo_ref),
     ]
     return JobPlan(
         kind=kind,
@@ -104,6 +111,10 @@ def build_plan(
             "SCHEMASMITH_NAMESPACE": namespace,
             "SCHEMASMITH_PUSH": "1",
             "SCHEMASMITH_REPO_REF": repo_ref,
+            # The image's system Python is marked externally managed.
+            "PIP_BREAK_SYSTEM_PACKAGES": "1",
+            "PYTHONUNBUFFERED": "1",
+            **({"SCHEMASMITH_N": str(n_tickets)} if n_tickets else {}),
         },
         secret_names=("HF_TOKEN",),
     )
@@ -152,6 +163,7 @@ def launch_plan(
         flavor=plan.flavor,
         timeout_seconds=plan.timeout_seconds,
         repo_ref=plan.env["SCHEMASMITH_REPO_REF"],
+        n_tickets=int(plan.env["SCHEMASMITH_N"]) if "SCHEMASMITH_N" in plan.env else None,
         hourly=live,
         rate_source="list_jobs_hardware",
     )
@@ -188,17 +200,51 @@ def live_hardware_rates() -> dict[str, float]:
             continue
         rates[item.name] = hourly_from_unit(item.unit_cost_usd, item.unit_label)
     if not rates:
-        raise RuntimeError("list_jobs_hardware returned no t4 rates. Not launching.")
+        raise RuntimeError("list_jobs_hardware returned no known GPU rates. Not launching.")
     return rates
 
 
-def _remote_shell(kind: str, repo_ref: str) -> str:
+def src_repo_id(namespace: str) -> str:
+    _check_namespace(namespace)
+    return f"{namespace}/{SRC_REPO_NAME}"
+
+
+def upload_source_wheel(namespace: str, wheel_path: str, token: str, api: Any = None) -> str:
+    """Upload the built wheel to the private source repo the job installs from."""
+    if api is None:
+        from huggingface_hub import HfApi
+
+        api = HfApi(token=token)
+    repo_id = src_repo_id(namespace)
+    api.create_repo(repo_id=repo_id, repo_type="model", private=True, exist_ok=True)
+    api.upload_file(
+        path_or_fileobj=wheel_path,
+        path_in_repo=WHEEL,
+        repo_id=repo_id,
+        repo_type="model",
+    )
+    return repo_id
+
+
+def _remote_shell(kind: str, namespace: str, repo_ref: str) -> str:
     # The token is read from the job secret inside the container. It is not
-    # interpolated into this command string.
+    # interpolated into this command string. ``repo_ref`` is a revision of the
+    # private source repo on the Hub.
+    download = (
+        "from huggingface_hub import hf_hub_download; "
+        f"hf_hub_download('{src_repo_id(namespace)}', '{WHEEL}', "
+        f"revision='{repo_ref}', local_dir='/tmp/w')"
+    )
     return "\n".join(
         [
             "set -euo pipefail",
-            f"pip install -q 'git+{REPO_URL}@{repo_ref}'",
+            "nvidia-smi --query-gpu=name,memory.total --format=csv",
+            "pip freeze | grep -iE '^(torch|torchvision|torchaudio)=='"
+            " > /tmp/constraints.txt || true",
+            "pip install -q --root-user-action=ignore huggingface_hub",
+            f'python -c "{download}"',
+            "pip install -q --root-user-action=ignore -c /tmp/constraints.txt "
+            f"/tmp/w/{WHEEL} {LEXSI_PINS}",
             "python -m schemasmith.hf.remote " + kind,
         ]
     )

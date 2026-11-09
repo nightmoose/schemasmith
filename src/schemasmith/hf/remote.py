@@ -12,9 +12,9 @@ import sys
 from pathlib import Path
 
 from schemasmith.data.generator import generate_tickets
-from schemasmith.data.preferences import write_dpo_dataset
+from schemasmith.data.preferences import chat_format_dpo_dir, write_dpo_dataset
 from schemasmith.hf.jobs import private_repo_ids
-from schemasmith.training import MODEL_ID, lora_dpo_kwargs, lora_sft_kwargs
+from schemasmith.training import DEFAULT_N, MODEL_ID, lora_dpo_kwargs, lora_sft_kwargs
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -35,9 +35,11 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def prepare_train_split(out: Path, n: int = 24, seed: int = 42):
+def prepare_train_split(out: Path, n: int | None = None, seed: int = 42):
     from schemasmith.curation.local import curate_local
 
+    if n is None:
+        n = int(os.environ.get("SCHEMASMITH_N", DEFAULT_N))
     records = generate_tickets(n, seed)
     curated = curate_local(records, out / "curated", seed=seed)
     return curated
@@ -50,7 +52,11 @@ def run_sft(out: Path, namespace: str) -> None:
 
     adapter_dir = out / "sft-adapter"
     trainer = create_sft_trainer(
-        **lora_sft_kwargs(dataset_dir=str(dataset_dir), output_dir=str(adapter_dir))
+        **lora_sft_kwargs(
+            dataset_dir=str(dataset_dir),
+            output_dir=str(adapter_dir),
+            train_rows=len(curated.splits["train"]),
+        )
     )
     trainer.train()
     _push_private(namespace, "sft", adapter_dir)
@@ -60,8 +66,13 @@ def run_sft(out: Path, namespace: str) -> None:
 def run_dpo(out: Path, namespace: str) -> None:
     curated = prepare_train_split(out)
     train_rows = curated.splits["train"]
-    dpo_dir = out / "dpo-data"
-    write_dpo_dataset(train_rows, dpo_dir, seed=42)
+    plain_dir = out / "dpo-plain"
+    dpo_dir = out / "dpo-chat"
+    summary = write_dpo_dataset(train_rows, plain_dir, seed=42)
+    from transformers import AutoTokenizer
+
+    rendered = chat_format_dpo_dir(plain_dir, AutoTokenizer.from_pretrained(MODEL_ID), dpo_dir)
+    print(f"rendered {rendered} DPO pairs with the chat template")
     repos = private_repo_ids(namespace)
     merged = _merge_sft_adapter(repos["sft"], out / "sft-merged")
     from aligntune.core.backend_factory import create_rl_trainer
@@ -72,6 +83,7 @@ def run_dpo(out: Path, namespace: str) -> None:
             dataset_dir=str(dpo_dir),
             output_dir=str(adapter_dir),
             model_name=str(merged),
+            train_rows=summary["split_counts"]["train"],
         )
     )
     trainer.train()
@@ -91,22 +103,33 @@ def run_eval(out: Path, namespace: str) -> None:
     prompts = [user_content(row.text) for row in held_out]
     repos = private_repo_ids(namespace)
     cards = {}
-    for name, adapter in (
-        ("base", None),
-        ("sft", repos["sft"]),
-        ("dpo", repos["dpo"]),
+    out.mkdir(parents=True, exist_ok=True)
+    for name, adapter, merge in (
+        ("base", None, None),
+        ("sft", repos["sft"], None),
+        # DPO was trained on SFT-merged weights. Merge SFT first.
+        ("dpo", repos["dpo"], repos["sft"]),
     ):
-        outputs = generate_texts(prompts, model_id=MODEL_ID, adapter=adapter)
+        outputs = generate_texts(prompts, model_id=MODEL_ID, adapter=adapter, merge_adapter=merge)
+        _write_predictions(out / f"predictions_{name}.jsonl", held_out, outputs)
         cards[name] = evaluate_records(held_out, outputs=outputs)
     payload = results_from_scorecards(
         cards,
-        data_path="seed-42 local test split",
+        data_path=f"seed-42 local test split of {len(curated.kept)} generated tickets",
         sft_adapter=repos["sft"],
         dpo_adapter=repos["dpo"],
     )
     dest = out / "compare.json"
     write_results(payload, dest)
     _push_private(namespace, "eval_logs", out)
+
+
+def _write_predictions(path: Path, rows, outputs) -> None:
+    import json
+
+    with path.open("w", encoding="utf-8") as fh:
+        for row, text in zip(rows, outputs, strict=True):
+            fh.write(json.dumps({"id": row.ticket_id, "output": text}, ensure_ascii=False) + "\n")
 
 
 def _merge_sft_adapter(repo_id: str, dest: Path) -> Path:
@@ -145,10 +168,42 @@ def _push_private(namespace: str, key: str, folder: Path) -> None:
 
     repo_id = private_repo_ids(namespace)[key]
     repo_type = "model" if key in ("sft", "dpo") else "dataset"
+    if key in ("sft", "dpo"):
+        _fix_card_base_model(folder)
     api = HfApi(token=token)
     api.create_repo(repo_id=repo_id, repo_type=repo_type, private=True, exist_ok=True)
-    api.upload_folder(folder_path=str(folder), repo_id=repo_id, repo_type=repo_type)
+    api.upload_folder(
+        folder_path=str(folder),
+        repo_id=repo_id,
+        repo_type=repo_type,
+        # Trainer checkpoints carry optimizer state and are not needed.
+        ignore_patterns=["checkpoint-*", "checkpoint-*/**", "**/checkpoint-*/**"],
+    )
     print(f"pushed private {repo_type} {repo_id}")
+
+
+def _fix_card_base_model(folder: Path) -> None:
+    """Point a local-path base_model in the PEFT card at the Hub model id.
+
+    The DPO adapter starts from SFT-merged weights saved under /tmp, and the
+    Hub rejects a card whose base_model is a local path.
+    """
+    import json
+    import re
+
+    card = folder / "README.md"
+    if card.exists():
+        text = card.read_text(encoding="utf-8")
+        text = re.sub(r"(base_model:(?:adapter:)?\s*)(/\S+)", rf"\g<1>{MODEL_ID}", text)
+        text = re.sub(r"(?m)^(\s*-\s*)(/\S+)\s*$", rf"\g<1>{MODEL_ID}", text)
+        card.write_text(text, encoding="utf-8")
+    cfg = folder / "adapter_config.json"
+    if cfg.exists():
+        data = json.loads(cfg.read_text(encoding="utf-8"))
+        base = data.get("base_model_name_or_path") or ""
+        if base.startswith("/"):
+            data["base_model_name_or_path"] = MODEL_ID
+            cfg.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

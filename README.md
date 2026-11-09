@@ -15,7 +15,7 @@ The pipeline is:
 3. AlignTune LoRA supervised fine-tuning of Tiny Aya Global, then a DPO LoRA on those weights.
 4. AuditKIT plus the contract validator for the held-out compare of base, SFT, and DPO.
 
-Training has not been run. Every model metric below is **TBD**.
+SFT, DPO, and the held-out compare were run on Hugging Face Jobs (one L4 GPU). The results table is generated from `results/compare.json`.
 
 ## Contract
 
@@ -51,7 +51,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
-schemasmith generate --n 24 --seed 42 --out data/raw/tickets.jsonl
+schemasmith generate --n 320 --seed 42 --out data/raw/tickets.jsonl
 schemasmith curate --raw data/raw/tickets.jsonl --out data/curated --seed 42
 ```
 
@@ -147,27 +147,41 @@ Core model and license: Tiny Aya Global, `CohereLabs/tiny-aya-global`, CC-BY-NC-
 
 Data: synthetic tickets generated in this repo. No third-party training set. The contract files are in `src/schemasmith/contracts/`.
 
-Artifacts: not uploaded yet. After the GPU runs, `schemasmith publish --public --execute` is what makes the dataset, both adapters, the eval logs, and the collection public and ungated.
+Artifacts: the dataset, both adapters, and the eval logs are staged in private Hub repos. `schemasmith publish --public --execute` is what makes them and the collection public and ungated.
 
-Experiments and before/after: not run. The table below stays TBD until `schemasmith compare` rewrites it from a results file.
+Experiments and before/after: one run of base, SFT, and DPO on the same 64 held-out tickets. The table below was written by `schemasmith compare --results results/compare.json --readme README.md`.
 
 ## Results
 
-Not measured. No base-model run and no fine-tune have been executed in this revision.
+Setup: 320 generated tickets, seed 42. The test split is 64 tickets, 8 per language and 16 per category, 56 of them non-English. Train is 219 and validation 37. Test uses one held-out sub-scenario per category, two held-out header formats, and held-out severity, opener, closer, and chatter phrasings. After masking digits and tier words, no test ticket matches a train ticket (`curate_local` refuses to write a split otherwise, and `tests/test_split_holdout.py` checks it). SFT ran 3 epochs (84 steps). DPO ran 1 epoch (24 steps) at learning rate 2e-5 and beta 0.1 on the SFT-merged weights. Both ran on one L4. Generation is greedy, at most 256 new tokens, and stops at the chat template's turn end (`<|END_RESPONSE|>` or `<|END_OF_TURN_TOKEN|>`) as well as the config EOS. Per-system outputs are in the eval-logs repo.
 
 <!-- SCHEMASMITH_METRICS_START -->
 | Metric | Base `tiny-aya-global` | SFT | DPO | Status |
 | --- | --- | --- | --- | --- |
-| Parse rate | TBD | TBD | TBD | not yet measured |
-| Schema-valid rate | TBD | TBD | TBD | not yet measured |
-| Field-level exact match | TBD | TBD | TBD | not yet measured |
-| Unsupported-value rate | TBD | TBD | TBD | not yet measured |
-| Non-English contract-valid rate | TBD | TBD | TBD | not yet measured |
+| Parse rate | 100.0% | 100.0% | 100.0% | measured |
+| Schema-valid rate | 46.9% | 100.0% | 100.0% | measured |
+| Field-level exact match | 71.4% | 98.0% | 98.2% | measured |
+| Unsupported-value rate | 32.9% | 0.0% | 0.0% | measured |
+| Non-English contract-valid rate | 46.4% | 100.0% | 100.0% | measured |
+
+Held-out rows: 64. Source file must stay next to this table. Status is measured only because this block was rewritten from that file.
 <!-- SCHEMASMITH_METRICS_END -->
+
+What the numbers show: SFT moved the base model from 46.9% to 100.0% schema-valid and removed unsupported values on this split. DPO on top of SFT matched SFT on every rate and was 0.2 points higher on field-level exact match: one more correct severity field out of 448 fields. That difference is within noise, so the claim is that DPO kept the SFT gains, not that it improved on them. The DPO adapter is the final stage.
+
+An earlier DPO run (2 epochs at 5e-5) scored below SFT (96.9% schema-valid, 93.3% field match), and both fine-tuned models then ran past the end of their answer. The cause of the run-on was in evaluation: generation stopped only on the config EOS (`<EOS_TOKEN>`), while chat turns, and the training targets, end with `<|END_RESPONSE|><|END_OF_TURN_TOKEN|>`. Generation now stops on those tokens as well, and DPO was retuned once to 1 epoch at 2e-5. The table above is from that single retune. The base and SFT rows did not change.
+
+### Limitations
+
+- **Synthetic data.** Every ticket comes from this repo's templates in eight languages. Held-out templates make the test harder than a random split, but the tickets still share structure, vocabulary, and the header subject lines with training. Real tickets will be messier.
+- **Single seed, single run.** One data seed (42), one SFT run, one reported DPO run (after one earlier attempt), 64 test tickets. A one-row change is 1.6 points. No confidence intervals were computed.
+- **Base model code fences.** The base model wrapped its JSON in a Markdown code fence in 49 of 64 outputs. The parser accepts fenced JSON, so this does not lower the base parse rate. SFT and DPO return bare JSON. A strict raw-JSON parse would score the base model lower.
+- **Severity is a convention.** The instruction defines the four severity levels, and each ticket states its level with a cue sentence. The score measures reading that cue, not judging real urgency.
+- **DPO pairs are planted failures.** Rejected answers are scripted corruptions of the gold label, not model outputs. The DPO setting was chosen after one earlier run on this same split, so the DPO row is not a fully blind result.
 
 ## What is left
 
-Run SFT, DPO, and the held-out compare on a GPU. Then `schemasmith publish --namespace HF_USER --public --execute` so judges can open the repos without an approval step. The metrics block is still TBD. A criterion map is in `docs/rubric_map.md`.
+`schemasmith publish --namespace HF_USER --public --execute` so judges can open the repos without an approval step. A criterion map is in `docs/rubric_map.md`.
 
 ## API notes
 

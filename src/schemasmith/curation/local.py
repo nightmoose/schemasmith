@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -55,6 +56,10 @@ def curate_local(
     """
     gated = _gate(records)
     splits = assign_splits(gated.kept, seed)
+    overlap = masked_overlap(splits["train"], splits["test"])
+    grouped = any(row.split_group for row in gated.kept)
+    if grouped and overlap:
+        raise RuntimeError(f"{len(overlap)} test tickets match a train ticket after masking")
     output_dir.mkdir(parents=True, exist_ok=True)
     for split_name, rows in splits.items():
         split_dir = output_dir / split_name
@@ -67,6 +72,8 @@ def curate_local(
         "kept_count": len(gated.kept),
         "rejected": gated.rejected,
         "split_counts": {name: len(rows) for name, rows in splits.items()},
+        "split_policy": "held-out templates" if grouped else "random",
+        "masked_train_test_overlap": len(overlap),
         "note": ("Local contract gate and exact text dedup. This folder is not a CuratorKIT run."),
     }
     (output_dir / "manifest.json").write_text(
@@ -111,13 +118,32 @@ def assign_splits(
     train_fraction: float = 0.75,
     validation_fraction: float = 0.125,
 ) -> dict[str, list[TicketRecord]]:
-    """Shuffle with ``seed`` and cut train / validation / test.
+    """Cut train / validation / test.
 
-    Sets smaller than 3 stay entirely in train so a tiny smoke run still
-    has something to read. Larger sets keep at least one validation row
-    and one test row.
+    When records carry ``split_group`` (the generator sets it), every
+    test-group record goes to test and the train group is shuffled with
+    ``seed`` into train and validation. Test then shares no sub-scenario,
+    header, or severity phrasing with train.
+
+    Otherwise the rows are shuffled with ``seed`` and cut by fraction. Sets
+    smaller than 3 stay entirely in train so a tiny smoke run still has
+    something to read. Larger sets keep at least one validation row and one
+    test row.
     """
     rng = random.Random(seed)
+    if any(row.split_group for row in records):
+        test = [row for row in records if row.split_group == "test"]
+        rest = [row for row in records if row.split_group != "test"]
+        rng.shuffle(rest)
+        share = validation_fraction / (train_fraction + validation_fraction)
+        n_val = round(len(rest) * share) if len(rest) >= 2 else 0
+        if len(rest) >= 2:
+            n_val = max(1, n_val)
+        return {
+            "train": rest[n_val:],
+            "validation": rest[:n_val],
+            "test": test,
+        }
     items = list(records)
     rng.shuffle(items)
     n = len(items)
@@ -133,6 +159,27 @@ def assign_splits(
         "validation": items[n_train : n_train + n_val],
         "test": items[n_train + n_val :],
     }
+
+
+_DIGITS = re.compile(r"\d+")
+_TIERS = re.compile(r"\b(free|pro|enterprise)\b", re.IGNORECASE)
+_SPACE = re.compile(r"\s+")
+
+
+def mask_text(text: str) -> str:
+    """Mask digits and tier words, fold case and spaces.
+
+    Two tickets that differ only in ids, amounts, or tier compare equal.
+    """
+    masked = _DIGITS.sub("#", text)
+    masked = _TIERS.sub("<tier>", masked)
+    return _SPACE.sub(" ", masked).strip().lower()
+
+
+def masked_overlap(train: list[TicketRecord], test: list[TicketRecord]) -> list[str]:
+    """Ticket ids in ``test`` whose masked text also appears in ``train``."""
+    seen = {mask_text(row.text) for row in train}
+    return [row.ticket_id for row in test if mask_text(row.text) in seen]
 
 
 def _hf_readme() -> str:

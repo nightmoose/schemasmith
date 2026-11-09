@@ -91,6 +91,59 @@ def write_dpo_dataset(
     return summary
 
 
+def render_chat_pair(row: dict[str, Any], tokenizer: Any) -> dict[str, str]:
+    """Render one pair with the model chat template, as plain strings.
+
+    AlignTune 0.1.32 flattens message-list DPO columns to bare text before
+    TRL sees them, so a chat-format row would train without the template.
+    Rendering here keeps DPO on the format the compare and serving use.
+    The leading BOS and the trailing EOS are left off because TRL adds them.
+    """
+    user = [{"role": "user", "content": row["prompt"]}]
+    prompt = tokenizer.apply_chat_template(user, tokenize=False, add_generation_prompt=True)
+    out = {"prompt": _strip_prefix(prompt, getattr(tokenizer, "bos_token", None))}
+    for key in ("chosen", "rejected"):
+        full = tokenizer.apply_chat_template(
+            user + [{"role": "assistant", "content": row[key]}], tokenize=False
+        )
+        if not full.startswith(prompt):
+            raise RuntimeError("chat template does not extend the generation prompt")
+        response = full[len(prompt) :]
+        eos = getattr(tokenizer, "eos_token", None)
+        if eos and response.endswith(eos):
+            response = response[: -len(eos)]
+        out[key] = response
+    return out
+
+
+def chat_format_dpo_dir(source_dir: Path, tokenizer: Any, dest_dir: Path) -> int:
+    """Write ``train`` and ``validation`` dpo.jsonl in chat-template form.
+
+    The rendered copy goes to a new folder. Rewriting the plain files in place
+    can leave a stale ``datasets`` cache entry that still serves the old rows.
+    """
+    if Path(dest_dir).resolve() == Path(source_dir).resolve():
+        raise ValueError("dest_dir must differ from source_dir")
+    count = 0
+    for split in ("train", "validation"):
+        path = source_dir / split / "dpo.jsonl"
+        if not path.exists():
+            continue
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+        write_jsonl(dest_dir / split / "dpo.jsonl", [render_chat_pair(r, tokenizer) for r in rows])
+        count += len(rows)
+    for name in ("README.md", "manifest.json", "pairs.jsonl"):
+        if (source_dir / name).exists():
+            (dest_dir / name).write_bytes((source_dir / name).read_bytes())
+    return count
+
+
+def _strip_prefix(text: str, prefix: str | None) -> str:
+    if prefix and text.startswith(prefix):
+        return text[len(prefix) :]
+    return text
+
+
 def _reject(record: TicketRecord, mode: str) -> str:
     gold = dict(record.gold)
     if mode == "broken_json":

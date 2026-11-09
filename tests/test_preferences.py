@@ -6,6 +6,8 @@ from schemasmith.data.preferences import (
     FAILURE_MODES,
     INVENTED_REFUND,
     build_preference_pairs,
+    chat_format_dpo_dir,
+    render_chat_pair,
     write_dpo_dataset,
 )
 
@@ -54,3 +56,35 @@ def test_dpo_export_holds_out_validation(tmp_path):
     assert set(row) == {"prompt", "chosen", "rejected"}
     card = (tmp_path / "dpo" / "README.md").read_text(encoding="utf-8")
     assert "config_name: dpo" in card
+
+
+class _FakeChatTokenizer:
+    bos_token = "<BOS>"
+    eos_token = "<EOT>"
+
+    def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=False):
+        text = "<BOS>"
+        for message in messages:
+            if message["role"] == "user":
+                text += f"<U>{message['content']}<EOT>"
+            else:
+                text += f"<A><R>{message['content']}</R><EOT>"
+        if add_generation_prompt:
+            text += "<A><R>"
+        return text
+
+
+def test_render_chat_pair_uses_the_template_without_double_specials():
+    row = {"prompt": "P", "chosen": "{}", "rejected": "{"}
+    out = render_chat_pair(row, _FakeChatTokenizer())
+    assert out == {"prompt": "<U>P<EOT><A><R>", "chosen": "{}</R>", "rejected": "{</R>"}
+
+
+def test_chat_format_dpo_dir_rewrites_both_splits(tmp_path):
+    write_dpo_dataset(generate_tickets(16, seed=2), tmp_path / "dpo", seed=2)
+    count = chat_format_dpo_dir(tmp_path / "dpo", _FakeChatTokenizer(), tmp_path / "chat")
+    assert count == 16
+    assert (tmp_path / "chat" / "README.md").exists()
+    first = json.loads((tmp_path / "chat" / "train" / "dpo.jsonl").read_text().splitlines()[0])
+    assert first["prompt"].startswith("<U>") and first["prompt"].endswith("<A><R>")
+    assert first["chosen"].endswith("</R>")
