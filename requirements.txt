@@ -1,0 +1,4 @@
+# MIT / Apache-2.0 runtime dependencies for the SchemaSmith package.
+# Lexsi LSAL tools are not listed here. See requirements-lexsi.txt.
+jsonschema==4.26.0
+PyYAML==6.0.3

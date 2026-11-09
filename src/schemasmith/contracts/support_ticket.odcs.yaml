@@ -1,0 +1,59 @@
+# Human-readable data contract for one extracted support ticket.
+# The executable gate is support_ticket.schema.json (JSON Schema draft 2020-12).
+# Field names follow the Open Data Contract Standard (ODCS) v3 shape:
+# kind, name, and a schema list of properties. This file is not certified
+# as a complete ODCS document; the JSON Schema is what the validator runs.
+apiVersion: v3.0.2
+kind: DataContract
+id: support_ticket
+name: support_ticket
+version: 0.1.0
+status: active
+description: >
+  Turn one multilingual support ticket into a single JSON object.
+  Money and identifiers must come from the source text.
+  refund_amount_usd is null unless category is billing.
+schema:
+  - name: support_ticket
+    physicalType: object
+    description: One extracted support ticket.
+    properties:
+      - name: ticket_id
+        logicalType: string
+        required: true
+        description: Ticket identifier copied from the source text.
+        pattern: "^T-[A-Za-z0-9]+$"
+      - name: customer_tier
+        logicalType: string
+        required: true
+        enum: [free, pro, enterprise]
+      - name: category
+        logicalType: string
+        required: true
+        enum: [billing, bug, access, feature_request]
+      - name: severity
+        logicalType: integer
+        required: true
+        minimum: 1
+        maximum: 4
+      - name: order_ref
+        logicalType: string
+        required: true
+        description: Order reference copied from the source text, or null.
+        pattern: "^ORD-\\d{6}$"
+        nullable: true
+      - name: refund_amount_usd
+        logicalType: decimal
+        required: true
+        description: USD refund. Null unless category is billing.
+        minimum: 0
+        nullable: true
+      - name: language
+        logicalType: string
+        required: true
+        description: >
+          ISO 639-1 code. The allowed set is the language enum in
+          support_ticket.schema.json.
+quality:
+  - description: refund_amount_usd is null unless category is billing.
+    type: custom

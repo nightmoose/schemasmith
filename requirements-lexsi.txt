@@ -1,0 +1,8 @@
+# External tools. Do not vendor these into the repository.
+# CuratorKIT and AuditKIT are Lexsi Labs Source Available License (LSAL).
+# AlignTune 0.1.32 is MIT, and its published wheel depends on curatorkit,
+# so it is installed from this file rather than from the MIT requirements.
+# The Unsloth backend shipped inside AlignTune is not used by this project.
+curatorkit==0.1.23
+auditkit==1.1.6
+aligntune==0.1.32
