@@ -59,26 +59,26 @@
     },
     "dpo": {
       "n": 64,
-      "n_parsed": 62,
-      "n_schema_valid": 62,
-      "n_contract_valid": 62,
-      "parse_rate": 0.96875,
-      "schema_valid_rate": 0.96875,
-      "contract_valid_rate": 0.96875,
-      "field_exact_match": 0.9330357142857143,
+      "n_parsed": 64,
+      "n_schema_valid": 64,
+      "n_contract_valid": 64,
+      "parse_rate": 1.0,
+      "schema_valid_rate": 1.0,
+      "contract_valid_rate": 1.0,
+      "field_exact_match": 0.9821428571428571,
       "per_field_accuracy": {
-        "ticket_id": 0.96875,
-        "customer_tier": 0.96875,
-        "category": 0.875,
-        "severity": 0.828125,
-        "order_ref": 0.96875,
-        "refund_amount_usd": 0.96875,
-        "language": 0.953125
+        "ticket_id": 1.0,
+        "customer_tier": 1.0,
+        "category": 0.921875,
+        "severity": 0.96875,
+        "order_ref": 1.0,
+        "refund_amount_usd": 1.0,
+        "language": 0.984375
       },
       "unsupported_value_rate": 0.0,
       "unsupported_field_count": 0,
-      "grounded_field_count": 101,
-      "non_english_contract_valid_rate": 0.9642857142857143,
+      "grounded_field_count": 106,
+      "non_english_contract_valid_rate": 1.0,
       "n_non_english": 56
     }
   }

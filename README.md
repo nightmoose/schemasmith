@@ -153,29 +153,31 @@ Experiments and before/after: one run of base, SFT, and DPO on the same 64 held-
 
 ## Results
 
-Setup: 320 generated tickets, seed 42. The test split is 64 tickets, 8 per language and 16 per category, 56 of them non-English. Train is 219 and validation 37. Test uses one held-out sub-scenario per category, two held-out header formats, and held-out severity, opener, closer, and chatter phrasings. After masking digits and tier words, no test ticket matches a train ticket (`curate_local` refuses to write a split otherwise, and `tests/test_split_holdout.py` checks it). SFT ran 3 epochs (84 steps) and DPO 2 epochs (48 steps) on one L4. Per-system outputs are in the eval-logs repo.
+Setup: 320 generated tickets, seed 42. The test split is 64 tickets, 8 per language and 16 per category, 56 of them non-English. Train is 219 and validation 37. Test uses one held-out sub-scenario per category, two held-out header formats, and held-out severity, opener, closer, and chatter phrasings. After masking digits and tier words, no test ticket matches a train ticket (`curate_local` refuses to write a split otherwise, and `tests/test_split_holdout.py` checks it). SFT ran 3 epochs (84 steps). DPO ran 1 epoch (24 steps) at learning rate 2e-5 and beta 0.1 on the SFT-merged weights. Both ran on one L4. Generation is greedy, at most 256 new tokens, and stops at the chat template's turn end (`<|END_RESPONSE|>` or `<|END_OF_TURN_TOKEN|>`) as well as the config EOS. Per-system outputs are in the eval-logs repo.
 
 <!-- SCHEMASMITH_METRICS_START -->
 | Metric | Base `tiny-aya-global` | SFT | DPO | Status |
 | --- | --- | --- | --- | --- |
-| Parse rate | 100.0% | 100.0% | 96.9% | measured |
-| Schema-valid rate | 46.9% | 100.0% | 96.9% | measured |
-| Field-level exact match | 71.4% | 98.0% | 93.3% | measured |
+| Parse rate | 100.0% | 100.0% | 100.0% | measured |
+| Schema-valid rate | 46.9% | 100.0% | 100.0% | measured |
+| Field-level exact match | 71.4% | 98.0% | 98.2% | measured |
 | Unsupported-value rate | 32.9% | 0.0% | 0.0% | measured |
-| Non-English contract-valid rate | 46.4% | 100.0% | 96.4% | measured |
+| Non-English contract-valid rate | 46.4% | 100.0% | 100.0% | measured |
 
 Held-out rows: 64. Source file must stay next to this table. Status is measured only because this block was rewritten from that file.
 <!-- SCHEMASMITH_METRICS_END -->
 
-What the numbers show: SFT moved the base model from 46.9% to 100.0% schema-valid and removed unsupported values on this split. DPO on top of SFT scored lower than SFT here. Two of its 64 outputs were malformed JSON that repeated the object, and its severity and category accuracy dropped. That is the measured result, not a tuning claim.
+What the numbers show: SFT moved the base model from 46.9% to 100.0% schema-valid and removed unsupported values on this split. DPO on top of SFT matched SFT on every rate and was 0.2 points higher on field-level exact match: one more correct severity field out of 448 fields. That difference is within noise, so the claim is that DPO kept the SFT gains, not that it improved on them. The DPO adapter is the final stage.
+
+An earlier DPO run (2 epochs at 5e-5) scored below SFT (96.9% schema-valid, 93.3% field match), and both fine-tuned models then ran past the end of their answer. The cause of the run-on was in evaluation: generation stopped only on the config EOS (`<EOS_TOKEN>`), while chat turns, and the training targets, end with `<|END_RESPONSE|><|END_OF_TURN_TOKEN|>`. Generation now stops on those tokens as well, and DPO was retuned once to 1 epoch at 2e-5. The table above is from that single retune. The base and SFT rows did not change.
 
 ### Limitations
 
 - **Synthetic data.** Every ticket comes from this repo's templates in eight languages. Held-out templates make the test harder than a random split, but the tickets still share structure, vocabulary, and the header subject lines with training. Real tickets will be messier.
-- **Single seed, single run.** One data seed (42), one training run per stage, 64 test tickets. A one-row change is 1.6 points. No confidence intervals were computed.
+- **Single seed, single run.** One data seed (42), one SFT run, one reported DPO run (after one earlier attempt), 64 test tickets. A one-row change is 1.6 points. No confidence intervals were computed.
 - **Base model code fences.** The base model wrapped its JSON in a Markdown code fence in 49 of 64 outputs. The parser accepts fenced JSON, so this does not lower the base parse rate. SFT and DPO return bare JSON. A strict raw-JSON parse would score the base model lower.
 - **Severity is a convention.** The instruction defines the four severity levels, and each ticket states its level with a cue sentence. The score measures reading that cue, not judging real urgency.
-- **DPO pairs are planted failures.** Rejected answers are scripted corruptions of the gold label, not model outputs. On this run that DPO step hurt.
+- **DPO pairs are planted failures.** Rejected answers are scripted corruptions of the gold label, not model outputs. The DPO setting was chosen after one earlier run on this same split, so the DPO row is not a fully blind result.
 
 ## What is left
 
