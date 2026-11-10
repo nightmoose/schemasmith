@@ -54,12 +54,14 @@ def generate_texts(
     adapter: str | None = None,
     merge_adapter: str | None = None,
     max_new_tokens: int = 256,
+    timings: list[float] | None = None,
 ) -> list[str]:
     """Generate one completion per prompt. Loads one model, then frees it.
 
     ``merge_adapter`` is merged into the base weights before ``adapter`` is
     applied. The DPO adapter was trained on SFT-merged weights, so scoring it
-    needs the SFT adapter merged first.
+    needs the SFT adapter merged first. When ``timings`` is a list, the
+    wall-clock seconds of each generate call are appended to it.
     """
     require_cuda_backend()
     import torch
@@ -81,6 +83,8 @@ def generate_texts(
     model.eval()
     device = next(model.parameters()).device
     stops = stop_token_ids(tokenizer, model.generation_config.eos_token_id)
+    import time
+
     outputs: list[str] = []
     for prompt in prompts:
         messages = [{"role": "user", "content": prompt}]
@@ -93,6 +97,7 @@ def generate_texts(
             return_tensors="pt",
         ).to(device)
         prompt_len = inputs["input_ids"].shape[-1]
+        start = time.perf_counter()
         with torch.no_grad():
             generated = model.generate(
                 **inputs,
@@ -101,6 +106,9 @@ def generate_texts(
                 eos_token_id=stops,
                 pad_token_id=tokenizer.pad_token_id,
             )
+        if timings is not None:
+            torch.cuda.synchronize()
+            timings.append(time.perf_counter() - start)
         new_tokens = generated[0, prompt_len:]
         outputs.append(tokenizer.decode(new_tokens, skip_special_tokens=True))
     del model

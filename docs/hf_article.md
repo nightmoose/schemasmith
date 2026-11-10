@@ -2,7 +2,9 @@
 
 The submission write-up is the GitHub README. This file is not required.
 
-# SchemaSmith: contract-valid ticket JSON from Tiny Aya Global
+# Lexsi SchemaSmith: made-up field values 32.9% to 0%
+
+On 64 held-out tickets, base Tiny Aya Global wrote an order reference or refund amount that is not in the ticket for 52 of 158 ids and amounts (the unsupported-value rate). After LoRA SFT and DPO, 0 of 106. On 26 hand-written hostile tickets, the final model cut that from 36.4% to 4.5% but still followed 4 of 6 prompt injections. The README has both tables and every miss.
 
 SchemaSmith extracts one support ticket into JSON that has to match a data contract. The contract is checked before training and again on the held-out set. The core model is Tiny Aya Global, `CohereLabs/tiny-aya-global`. No other model is part of the submission.
 
@@ -22,11 +24,11 @@ AlignTune's TRL backend runs LoRA supervised fine-tuning, then DPO. The DPO run 
 
 ## Evaluation
 
-One compare command runs the base model, the SFT adapter, and the DPO adapter on the held-out split, writes a JSON file, and rewrites the metrics table from that file. Until that file exists, every number in the table is TBD. This article does not fill them in.
+One compare command runs the base model, the SFT adapter, and the DPO adapter on the held-out split, writes a JSON file, and rewrites the metrics table from that file. A second job runs the same three systems on the hostile set. The README tables are checked against both files by tests.
 
 ## Page
 
-A Gradio page shows the contract and a sample ticket. Mock mode returns the labeled JSON and says so. It does not load Tiny Aya.
+A Gradio page replays a recorded run: real base, SFT, and DPO outputs on the same tickets, with the contract check and the gate decision. It does not load Tiny Aya. A mock playground shows the contract on labeled examples.
 
 ## Licenses
 

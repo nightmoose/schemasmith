@@ -29,7 +29,7 @@ WHEEL = f"schemasmith-{__version__}-py3-none-any.whl"
 # AlignTune 0.1.32 needs torch < 2.14. Matching the image avoids a torch swap.
 IMAGE = "pytorch/pytorch:2.13.0-cuda12.6-cudnn9-runtime"
 LEXSI_PINS = "curatorkit==0.1.23 auditkit==1.1.6 aligntune==0.1.32"
-JOBS = ("sft", "dpo", "eval")
+JOBS = ("sft", "dpo", "eval", "hostile")
 
 HardwareLookup = Callable[[], dict[str, float]]
 JobRunner = Callable[..., Any]

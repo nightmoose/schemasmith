@@ -17,6 +17,7 @@ from schemasmith.hf.cards import (
     collection_description,
     dataset_card,
     eval_logs_card,
+    load_result_files,
 )
 from schemasmith.hf.jobs import private_repo_ids
 
@@ -72,11 +73,15 @@ def build_publish_plan(
 ) -> PublishPlan:
     repos = private_repo_ids(namespace)
     private = not public
+    compare, hostile = load_result_files()
+    sft_card = adapter_card("sft", compare, hostile)
+    dpo_card = adapter_card("dpo", compare, hostile)
+    logs_card = eval_logs_card(compare, hostile)
     items = [
         UploadItem(repos["dataset"], "dataset", private, False, dataset_card(), _dir(dataset_dir)),
-        UploadItem(repos["sft"], "model", private, False, adapter_card("sft"), _dir(sft_dir)),
-        UploadItem(repos["dpo"], "model", private, False, adapter_card("dpo"), _dir(dpo_dir)),
-        UploadItem(repos["eval_logs"], "dataset", private, False, eval_logs_card(), _dir(eval_dir)),
+        UploadItem(repos["sft"], "model", private, False, sft_card, _dir(sft_dir)),
+        UploadItem(repos["dpo"], "model", private, False, dpo_card, _dir(dpo_dir)),
+        UploadItem(repos["eval_logs"], "dataset", private, False, logs_card, _dir(eval_dir)),
     ]
     return PublishPlan(
         namespace=namespace,

@@ -63,6 +63,13 @@ python -m pip wheel --no-deps -w dist .
 schemasmith jobs sft --namespace HF_USER --n 320 --upload-wheel dist/schemasmith-0.2.0-py3-none-any.whl --launch
 schemasmith jobs dpo --namespace HF_USER --n 320 --launch
 schemasmith jobs eval --namespace HF_USER --n 320 --launch
+schemasmith jobs hostile --namespace HF_USER --timeout 1800 --launch
+```
+
+The hostile job trains nothing. It runs base, SFT, and DPO on the 26 hand-written tickets in `src/schemasmith/hostile/tickets.py` and writes `hostile/` in the eval-logs repo. The reported run was job `6af32ed99737d9a9e090b945` on Nov 10, 2026, about six minutes on one L4. To rebuild the recorded demo files from a local copy of the eval-logs repo:
+
+```bash
+python scripts/build_recording.py --eval-logs path/to/schemasmith-eval-logs
 ```
 
 The default flavor is `l4x1`. AlignTune 0.1.32 runs DPO in bf16, which transformers refuses on a T4. The image is `pytorch/pytorch:2.13.0-cuda12.6-cudnn9-runtime` because AlignTune needs torch below 2.14. `--n 320` gives a 219 / 37 / 64 split, with whole sub-scenarios and templates held out of test. SFT runs about 3 epochs. DPO runs 1 epoch at learning rate 2e-5.
@@ -88,8 +95,8 @@ The first command writes cards and makes no Hub call. The second, with `--public
 python space/app.py
 ```
 
-Mock mode is on. The scorecard stays TBD until a compare file is loaded in the text box.
+The page opens on the recorded run from `space/recorded_runs.json`: real outputs, replayed, no model loaded. The contract playground below it uses labeled examples in mock mode, and its scorecard stays TBD until a compare file is loaded in the text box.
 
 ## What is not measured here
 
-Base, SFT, and DPO metrics. Do not copy the planted-failure checks or a gold-JSON pipeline check into the results table.
+The commands in the local-checks section produce no model metrics; the measured numbers come only from `results/compare.json` and `results/hostile.json`, written by the HF Jobs above. Do not copy the planted-failure checks or a gold-JSON pipeline check into the results table.
