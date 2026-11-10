@@ -89,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
     compare.add_argument("--readme", type=Path)
 
     jobs = sub.add_parser("jobs", help="preview or launch a small HF Job")
-    jobs.add_argument("kind", choices=("sft", "dpo", "eval"))
+    jobs.add_argument("kind", choices=("sft", "dpo", "eval", "hostile"))
     jobs.add_argument("--namespace", required=True)
     jobs.add_argument("--flavor", default=DEFAULT_FLAVOR)
     jobs.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS)

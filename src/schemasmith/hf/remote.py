@@ -19,7 +19,7 @@ from schemasmith.training import DEFAULT_N, MODEL_ID, lora_dpo_kwargs, lora_sft_
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="schemasmith.hf.remote")
-    parser.add_argument("kind", choices=("sft", "dpo", "eval"))
+    parser.add_argument("kind", choices=("sft", "dpo", "eval", "hostile"))
     parser.add_argument("--out", type=Path, default=Path("/tmp/schemasmith-job"))
     parser.add_argument("--namespace", default=os.environ.get("SCHEMASMITH_NAMESPACE", ""))
     args = parser.parse_args(argv)
@@ -30,8 +30,10 @@ def main(argv: list[str] | None = None) -> int:
         run_sft(args.out, args.namespace)
     elif args.kind == "dpo":
         run_dpo(args.out, args.namespace)
-    else:
+    elif args.kind == "eval":
         run_eval(args.out, args.namespace)
+    else:
+        run_hostile(args.out, args.namespace)
     return 0
 
 
@@ -124,6 +126,55 @@ def run_eval(out: Path, namespace: str) -> None:
     _push_private(namespace, "eval_logs", out)
 
 
+def run_hostile(out: Path, namespace: str) -> None:
+    """Base, SFT, and DPO on the hand-written hostile tickets.
+
+    Writes ``hostile.json`` and one predictions file per system, with the
+    wall-clock seconds each ticket took, and pushes them to ``hostile/`` in
+    the private eval-logs repo. Nothing is trained here.
+    """
+    import json
+
+    from schemasmith.eval.generate import generate_texts
+    from schemasmith.hostile import TICKETS, score_hostile
+    from schemasmith.prompts import user_content
+
+    out = out / "hostile"
+    out.mkdir(parents=True, exist_ok=True)
+    prompts = [user_content(t.text) for t in TICKETS]
+    repos = private_repo_ids(namespace)
+    systems = {}
+    for name, adapter, merge in (
+        ("base", None, None),
+        ("sft", repos["sft"], None),
+        ("dpo", repos["dpo"], repos["sft"]),
+    ):
+        seconds: list[float] = []
+        outputs = generate_texts(
+            prompts, model_id=MODEL_ID, adapter=adapter, merge_adapter=merge, timings=seconds
+        )
+        with (out / f"predictions_{name}.jsonl").open("w", encoding="utf-8") as fh:
+            for ticket, text, secs in zip(TICKETS, outputs, seconds, strict=True):
+                row = {"id": ticket.ticket_id, "kind": ticket.kind, "output": text}
+                row["seconds"] = round(secs, 3)
+                fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+        systems[name] = score_hostile(TICKETS, outputs)
+        print(name, {k: v for k, v in systems[name].items() if k not in ("rows", "by_kind")})
+    payload = {
+        "measurement": "hostile",
+        "model_id": MODEL_ID,
+        "sft_adapter": repos["sft"],
+        "dpo_adapter": repos["dpo"],
+        "n": len(TICKETS),
+        "generation": "greedy, max 256 new tokens, stop on config EOS and chat turn end",
+        "systems": systems,
+    }
+    (out / "hostile.json").write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    _push_private(namespace, "eval_logs", out, path_in_repo="hostile")
+
+
 def _write_predictions(path: Path, rows, outputs) -> None:
     import json
 
@@ -157,7 +208,7 @@ def _merge_sft_adapter(repo_id: str, dest: Path) -> Path:
     return dest
 
 
-def _push_private(namespace: str, key: str, folder: Path) -> None:
+def _push_private(namespace: str, key: str, folder: Path, path_in_repo: str = "") -> None:
     if os.environ.get("SCHEMASMITH_PUSH") != "1":
         print(f"not pushing {key}; SCHEMASMITH_PUSH is not 1")
         return
@@ -176,6 +227,7 @@ def _push_private(namespace: str, key: str, folder: Path) -> None:
         folder_path=str(folder),
         repo_id=repo_id,
         repo_type=repo_type,
+        path_in_repo=path_in_repo or None,
         # Trainer checkpoints carry optimizer state and are not needed.
         ignore_patterns=["checkpoint-*", "checkpoint-*/**", "**/checkpoint-*/**"],
     )
