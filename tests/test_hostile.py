@@ -75,3 +75,16 @@ def test_table_renders_counts():
     table = render_hostile_table({"systems": {"base": card, "sft": card, "dpo": card}})
     assert f"{len(TICKETS)} of {len(TICKETS)}" in table
     assert "Injections refused" in table
+
+
+def test_cards_lead_with_the_measured_headline():
+    from schemasmith.hf.cards import adapter_card, eval_logs_card, load_result_files
+
+    compare, hostile = load_result_files()
+    card = adapter_card("dpo", compare, hostile)
+    body = card.split("---", 2)[2]
+    assert body.index("Made-up field values: 32.9% to 0%") < body.index("Core model")
+    assert "license: cc-by-nc-4.0" in card
+    assert "injections refused" in card
+    assert "Made-up field values" in eval_logs_card(compare, hostile)
+    assert "Made-up field values" not in adapter_card("sft")

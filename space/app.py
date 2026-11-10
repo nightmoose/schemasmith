@@ -1,4 +1,4 @@
-"""SchemaSmith Space. Mock mode does not load a model.
+"""SchemaSmith Space. Replays recorded real outputs; it does not load a model.
 
 Gradio is Apache-2.0. This file is MIT, same as the rest of the repository.
 """
@@ -20,7 +20,9 @@ from schemasmith.space_demo import (  # noqa: E402
     contract_text,
     example_failure,
     labeled_json,
+    load_recorded,
     record_by_id,
+    recorded_markdown,
     sample_records,
     scorecard_markdown,
 )
@@ -35,6 +37,25 @@ label, .prose, p { color: #e6edf3 !important; }
 
 def _choices() -> list[str]:
     return [row.ticket_id for row in sample_records()]
+
+
+RECORDED = load_recorded()
+
+
+def _recorded_choices() -> list[str]:
+    return [f"{e['id']} ({e['set']})" for e in RECORDED]
+
+
+def show_recorded(choice: str):
+    entry = RECORDED[_recorded_choices().index(choice)]
+    runs = entry["runs"]
+    return (
+        entry["text"],
+        runs["base"]["output"],
+        runs["sft"]["output"],
+        runs["dpo"]["output"],
+        recorded_markdown(entry),
+    )
 
 
 def load_sample(ticket_id: str):
@@ -84,15 +105,33 @@ def build_demo() -> gr.Blocks:
     text, labeled, failure = load_sample(first)
     with gr.Blocks(css=CSS, title="SchemaSmith") as demo:
         gr.HTML(
-            "<div class='banner'>Mock mode uses labeled examples. "
-            "The scorecard stays TBD until a compare results file is loaded.</div>"
+            "<div class='banner'>Recorded run: real outputs from Tiny Aya Global and the "
+            "two adapters, replayed from the eval logs. This page does not load the model.</div>"
         )
         gr.Markdown(
-            "# SchemaSmith\n"
-            "Turn a support ticket into JSON that matches a data contract. "
-            "Core model: Tiny Aya Global (`CohereLabs/tiny-aya-global`). "
-            "This page does not load it."
+            "# Lexsi SchemaSmith\n"
+            "Made-up ids and amounts in ticket JSON: 32.9% with base Tiny Aya Global, "
+            "0% after SFT and DPO, on 64 held-out tickets. A contract and a grounding "
+            "check in code decide what is accepted; anything else is held for a person."
         )
+        if RECORDED:
+            gr.Markdown("### Recorded run: base vs SFT vs DPO on the same ticket")
+            rec_pick = gr.Dropdown(
+                _recorded_choices(), value=_recorded_choices()[0], label="Recorded ticket"
+            )
+            first_rec = show_recorded(_recorded_choices()[0])
+            rec_text = gr.Textbox(value=first_rec[0], lines=6, label="Ticket")
+            with gr.Row():
+                rec_base = gr.Code(first_rec[1], language="json", label="Base output")
+                rec_sft = gr.Code(first_rec[2], language="json", label="SFT output")
+                rec_dpo = gr.Code(first_rec[3], language="json", label="DPO output")
+            rec_md = gr.Markdown(first_rec[4])
+            rec_pick.change(
+                show_recorded,
+                inputs=[rec_pick],
+                outputs=[rec_text, rec_base, rec_sft, rec_dpo, rec_md],
+            )
+        gr.Markdown("### Contract playground (labeled examples, mock mode)")
         with gr.Row():
             with gr.Column():
                 gr.Markdown("### Data contract")

@@ -115,3 +115,34 @@ def _fmt(value: object) -> str:
     if value is None:
         return "n/a"
     return f"{float(value) * 100:.1f}%"
+
+
+# Real outputs recorded from the private eval-logs repo by
+# scripts/build_recording.py. The Space replays them; it does not generate.
+RECORDED_PATH = Path(__file__).resolve().parents[2] / "space" / "recorded_runs.json"
+
+
+def load_recorded(path: Path | None = None) -> list[dict[str, Any]]:
+    path = path or RECORDED_PATH
+    if not path.is_file():
+        return []
+    return json.loads(path.read_text(encoding="utf-8"))["entries"]
+
+
+def recorded_markdown(entry: dict[str, Any]) -> str:
+    labels = {"base": "Base Tiny Aya Global", "sft": "SFT adapter", "dpo": "DPO adapter (final)"}
+    lines = [f"**{entry['id']}**, {entry['set']}"]
+    if entry.get("note"):
+        lines.append(f"_{entry['note']}_")
+    for name, run in entry["runs"].items():
+        verdict = "valid" if run["contract_valid"] else "fails the contract"
+        made_up = ", ".join(run["unsupported"]) or "none"
+        gate = run["gate"]
+        if run.get("gate_reasons"):
+            gate += " (" + "; ".join(run["gate_reasons"][:2]) + ")"
+        lines.append(
+            f"- {labels[name]}: {verdict}; values not in the ticket: {made_up}; code gate: {gate}"
+        )
+        if run.get("injection_followed"):
+            lines.append("  - wrote a value the injected instruction asked for")
+    return "\n".join(lines)
