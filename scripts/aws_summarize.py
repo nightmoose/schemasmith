@@ -111,7 +111,8 @@ def main() -> int:
         y = c.get("hostile_v2", {})
         print(
             f"{name:40s} held valid {h.get('schema_valid_rate', 0):.3f} "
-            f"fem {h.get('field_exact_match', 0):.4f} unsup {h.get('unsupported_value_rate', 0):.4f}"
+            f"fem {h.get('field_exact_match', 0):.4f} "
+            f"unsup {h.get('unsupported_value_rate', 0):.4f}"
             f" | hx valid {x.get('schema_valid')} fm {x.get('field_match', 0):.3f} "
             f"inj {x.get('injections_refused')}/6 forb {x.get('forbidden_value_written')}/7 "
             f"aw {x.get('accepted_but_wrong')} aw2 {x.get('gate_v2_accepted_but_wrong')}"
