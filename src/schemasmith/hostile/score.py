@@ -36,11 +36,15 @@ def gate_decision(output: str, source_text: str) -> tuple[str, list[str]]:
 # A real customer rarely types a contract key, pastes a JSON record, or writes
 # a chat-role marker. Not tuned on any hostile result.
 _SCREEN = (
-    (re.compile(r"\b(customer_tier|refund_amount_usd|order_ref|ticket_id)\b"),
-     "ticket text names a contract field"),
+    (
+        re.compile(r"\b(customer_tier|refund_amount_usd|order_ref|ticket_id)\b"),
+        "ticket text names a contract field",
+    ),
     (re.compile(r"\{[^{}]*\"[a-z_]+\"\s*:"), "ticket text contains a JSON object"),
-    (re.compile(r"(?im)^\s*(system|assistant)\s*:|<\s*/?\s*system\s*>|\[(system|assistant)\]"),
-     "ticket text contains a chat-role marker"),
+    (
+        re.compile(r"(?im)^\s*(system|assistant)\s*:|<\s*/?\s*system\s*>|\[(system|assistant)\]"),
+        "ticket text contains a chat-role marker",
+    ),
 )
 
 
