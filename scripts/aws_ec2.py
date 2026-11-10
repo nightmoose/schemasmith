@@ -157,11 +157,13 @@ echo SETUP_DONE
 
 def run(iid: str, name: str, cmd: str) -> None:
     c = ssh(iid)
-    wrapped = (
-        f"cd ~ && . ~/venv/bin/activate && export HF_TOKEN=$(cat ~/.hf_token) "
-        f"WORK=$HOME/w PYTHONUNBUFFERED=1 HF_HUB_ENABLE_HF_TRANSFER=0 && "
-        f"nohup bash -c '{cmd}; echo EXIT_CODE $?' > ~/logs/{name}.log 2>&1 &"
+    inner = (
+        f". ~/venv/bin/activate && export HF_TOKEN=$(cat ~/.hf_token) WORK=$HOME/w "
+        f"PYTHONUNBUFFERED=1 HF_HUB_ENABLE_HF_TRANSFER=0 && cd ~ && {cmd}; echo EXIT_CODE $?"
     )
+    with c.open_sftp().open(f"/home/ubuntu/logs/{name}.sh", "w") as fh:
+        fh.write(inner + "\n")
+    wrapped = f"nohup bash ~/logs/{name}.sh > ~/logs/{name}.log 2>&1 < /dev/null &"
     sh(c, wrapped, quiet=True)
     print("started", name)
     c.close()

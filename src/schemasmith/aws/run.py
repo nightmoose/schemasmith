@@ -177,8 +177,9 @@ def generate_batched(
     tok.padding_side = "left"
     if tok.pad_token_id is None:
         tok.pad_token = tok.eos_token
+    dev = "cuda" if torch.cuda.is_available() else "cpu"
     model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID, torch_dtype=torch.bfloat16, device_map="cuda"
+        MODEL_ID, torch_dtype=torch.bfloat16, device_map=dev
     )
     if merge_adapter:
         model = PeftModel.from_pretrained(model, merge_adapter).merge_and_unload()
@@ -199,7 +200,7 @@ def generate_batched(
         idx = order[start : start + batch_size]
         enc = tok(
             [texts[i] for i in idx], return_tensors="pt", padding=True, add_special_tokens=False
-        ).to("cuda")
+        ).to(dev)
         t = time.perf_counter()
         with torch.no_grad():
             gen = model.generate(
@@ -209,13 +210,15 @@ def generate_batched(
                 eos_token_id=stops,
                 pad_token_id=tok.pad_token_id,
             )
-        torch.cuda.synchronize()
+        if dev == "cuda":
+            torch.cuda.synchronize()
         dt = time.perf_counter() - t
         for j, i in enumerate(idx):
             outs[i] = tok.decode(gen[j, enc["input_ids"].shape[1] :], skip_special_tokens=True)
             secs[i] = dt / len(idx)
     del model
-    torch.cuda.empty_cache()
+    if dev == "cuda":
+        torch.cuda.empty_cache()
     return outs, secs
 
 
