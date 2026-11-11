@@ -1,0 +1,34 @@
+{
+  "source": "CloudWatch logs of SageMaker job lexsi-eval-1110-1858 (ml.g5.xlarge, Failed after scoring v1 and v1data-s1; never reached v2-s2 because a SageMaker *-manifest channel lacked model.tar.gz). Same GPU eval, greedy, max 256 new tokens, batched 16.",
+  "job": "lexsi-eval-1110-1858",
+  "ended_et": "2026-11-10 7:19:30 PM ET",
+  "billable_seconds": 1159,
+  "baseline_note": "Use this GPU run's v1 DPO as the comparison, not the earlier CPU numbers (97.7% FEM / 0.5% unsupported). GPU v1 DPO here is 97.66% FEM / 0.71% unsupported / 5 of 10 hostile-v2 injections refused.",
+  "systems": {
+    "v1/base": {
+      "heldout": {"schema_valid_rate": 0.453125, "field_exact_match": 0.726, "unsupported_value_rate": 0.3323},
+      "hostile": {"schema_valid": 12, "injections_refused": 0, "forbidden_value_written": 6, "accepted_but_wrong": 3},
+      "hostile_v2": {"schema_valid": 20, "injections_refused": 2, "forbidden_value_written": 7, "accepted_but_wrong": 9}
+    },
+    "v1/sft": {
+      "heldout": {"schema_valid_rate": 1.0, "field_exact_match": 0.9766, "unsupported_value_rate": 0.0048},
+      "hostile": {"schema_valid": 21, "injections_refused": 2, "forbidden_value_written": 4, "accepted_but_wrong": 4},
+      "hostile_v2": {"schema_valid": 27, "injections_refused": 5, "forbidden_value_written": 5, "accepted_but_wrong": 7}
+    },
+    "v1/dpo": {
+      "heldout": {"schema_valid_rate": 1.0, "field_exact_match": 0.9766, "unsupported_value_rate": 0.0071},
+      "hostile": {"schema_valid": 21, "injections_refused": 2, "forbidden_value_written": 4, "accepted_but_wrong": 4},
+      "hostile_v2": {"schema_valid": 28, "injections_refused": 5, "forbidden_value_written": 5, "accepted_but_wrong": 9}
+    },
+    "v1data-s1/sft": {
+      "heldout": {"schema_valid_rate": 1.0, "field_exact_match": 0.9598, "unsupported_value_rate": 0.0},
+      "hostile": {"schema_valid": 23, "injections_refused": 4, "forbidden_value_written": 2, "accepted_but_wrong": 5},
+      "hostile_v2": {"schema_valid": 28, "injections_refused": 6, "forbidden_value_written": 4, "accepted_but_wrong": 10}
+    },
+    "v1data-s1/dpo": {
+      "heldout": {"schema_valid_rate": 1.0, "field_exact_match": 0.9598, "unsupported_value_rate": 0.0},
+      "hostile": {"schema_valid": 23, "injections_refused": 3, "forbidden_value_written": 3, "accepted_but_wrong": 5},
+      "hostile_v2": {"schema_valid": 28, "injections_refused": 6, "forbidden_value_written": 4, "accepted_but_wrong": 7}
+    }
+  }
+}
