@@ -38,6 +38,8 @@ else
   python3 -m schemasmith.aws.run eval --work $W --tag v1 --base \
     --sft nightmoose/schemasmith-tiny-aya-sft --dpo nightmoose/schemasmith-tiny-aya-dpo
   for ch in /opt/ml/input/data/*; do
+    # SageMaker may add a *-manifest channel when the S3 uri is a single object.
+    [ -f "$ch/model.tar.gz" ] || { echo "skip $(basename $ch) (no model.tar.gz)"; continue; }
     tag=$(basename $ch); mkdir -p $W/$tag
     tar xzf $ch/model.tar.gz -C $W/$tag
     python3 -m schemasmith.aws.run eval --work $W --tag $tag

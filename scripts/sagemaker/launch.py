@@ -87,7 +87,7 @@ def create(name: str, itype: str, spot: bool, env: dict, channels: dict | None, 
                 "DataSource": {
                     "S3DataSource": {
                         "S3DataType": "S3Prefix",
-                        "S3Uri": f"s3://{BUCKET}/out/{job}/output/model.tar.gz",
+                        "S3Uri": f"s3://{BUCKET}/out/{job}/output/",
                         "S3DataDistributionType": "FullyReplicated",
                     }
                 },

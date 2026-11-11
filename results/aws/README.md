@@ -77,11 +77,9 @@ $0.33 / $2.75 per 1M tokens): about $20 (Micro), $35 (Lite), $283 (2 Lite), and 
 per 1M tickets. Median latency was 0.5 to 0.7 s per ticket. Tiny Aya on a 16-vCPU CPU box ran
 about 3.0 s per ticket batched; the README's L4 number is 3.67 s unbatched.
 
-## Next (needs G quota)
+## SageMaker v2 training (in progress)
 
-`python -m schemasmith.aws.run prep`, then `train --tag v2-s{1,2,3} --seed {1,2,3}` (v1
-data plus 480 adversarial rows, injection-following answers as DPO rejections), `train
---tag v1data-s1 --no-adv` (ablation), then `eval` for each tag and for v1 on the same GPU.
-Re-scored, v2 is compared against v1 on held-out 256 and on hostile v2 (blind). Hostile v1
-is no longer blind for v2 because the adversarial rows were designed after reading its
-failures. Estimated about 6 g6.xlarge-hours, under $10.
+G-instance training ran Nov 10 evening. Three of four training jobs completed
+(v1-data ablation, v2 seeds 2 and 3). Seed 1 was still in DPO at 7:20 PM ET.
+The ablation has a same-GPU eval in `sagemaker/README.md`. v2 seed eval is in
+flight. Headline v1 CPU / Nova tables above are unchanged until that finishes.
