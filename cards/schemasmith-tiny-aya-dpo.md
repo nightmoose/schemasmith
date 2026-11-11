@@ -42,11 +42,13 @@ non-commercial. The repo is not gated. Scores above are copied from the compare,
 ## Licenses
 
 The training and evaluation code in the SchemaSmith repository is MIT.
+The synthetic support-ticket dataset is original work and is MIT.
 
 The core model is Tiny Aya Global, `CohereLabs/tiny-aya-global`.
 No other model is trained or scored as the submission model.
-Those weights, and every adapter derived from them, are CC-BY-NC-4.0.
-Public adapter repos are not gated. The license is this card.
+Those weights, every adapter derived from them, and the eval logs
+(model outputs) are CC-BY-NC-4.0, non-commercial.
+Public adapter and eval-log repos are not gated. The license is this card.
 
 CuratorKIT and AuditKIT are external dependencies under the Lexsi Labs
 Source Available License. Their source is not in this repository.

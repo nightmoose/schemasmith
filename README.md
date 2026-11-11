@@ -251,7 +251,7 @@ The job runs base, SFT, and DPO on the 26 tickets in `src/schemasmith/hostile/ti
 
 `schemasmith jobs sft|dpo|eval` prints a plan and does not start a job. Add `--launch` to start one. The plan names a small GPU flavor and a cost ceiling. Launch reads `HF_TOKEN` from the environment and sends it as a job secret.
 
-`schemasmith publish` is a dry run and private by default. `--execute` uploads. `--public` is the switch that makes the repos and the collection public. Those public repos are not gated. Adapter cards carry CC-BY-NC-4.0 because they are derived from Tiny Aya Global. A private or manually approved repo is not what judges should be sent.
+`schemasmith publish` is a dry run and private by default. `--execute` uploads. `--public` is the switch that makes the repos and the collection public. Those public repos are not gated. Adapter and eval-log cards carry CC-BY-NC-4.0 because they are derived from Tiny Aya Global. The synthetic dataset card is MIT. A private or manually approved repo is not what judges should be sent.
 
 `docs/reproducibility.md` lists the order. `space/app.py` is the Gradio page. It replays the recorded real outputs from `space/recorded_runs.json` and has a mock contract playground. It does not load a model.
 
@@ -286,5 +286,9 @@ This repository’s original code is licensed under the **MIT License**.
 **Lexsi Labs tools** (CuratorKIT, AuditKIT, and related Lexsi source-available packages) are used only as **external, non-vendored dependencies** (see `requirements-lexsi.txt`). Their source is **not copied** into this repository. Those tools remain under the Lexsi Labs Source Available License (LSAL). This use is a **hackathon-only exception** approved for the Lexsi AI Safety & Alignment Hackathon entry.
 
 **Model weights:** Cohere Tiny Aya / Aya family weights used here are **CC-BY-NC-4.0** (non-commercial). See the model card on Hugging Face for terms.
+
+**Dataset:** the synthetic support tickets are original work and are licensed under the **MIT License**.
+
+**Eval logs:** generations from Tiny Aya and its adapters are **CC-BY-NC-4.0** (non-commercial).
 
 Do not vendor or re-license Lexsi LSAL source into this MIT tree.

@@ -52,7 +52,7 @@ How: CuratorKIT curates a small synthetic set with the contract as a row filter;
 
 Limits: synthetic, template-based training and held-out data; small hostile sets; the original DPO setting was chosen after one earlier run on the 64-ticket split; v2 is 3 seeds; the ablation is one seed.
 
-Licenses: code MIT; Tiny Aya Global and both adapters CC-BY-NC-4.0, non-commercial; the synthetic dataset card is MIT (original tickets, not derived weights); Lexsi source-available tools are external dependencies, not copied into the repository.
+Licenses: code MIT; the synthetic dataset card is MIT (original tickets, not derived weights); Tiny Aya Global, both adapters, and the eval logs are CC-BY-NC-4.0, non-commercial; Lexsi source-available tools are external dependencies, not copied into the repository.
 
 ## Abstract
 
