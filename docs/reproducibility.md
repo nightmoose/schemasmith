@@ -99,4 +99,4 @@ The page opens on the recorded run from `space/recorded_runs.json`: real outputs
 
 ## What is not measured here
 
-The commands in the local-checks section produce no model metrics; the measured numbers come only from `results/compare.json` and `results/hostile.json`, written by the HF Jobs above. Do not copy the planted-failure checks or a gold-JSON pipeline check into the results table.
+The commands in the local-checks section produce no model metrics. The 64-ticket and 26-ticket numbers come from `results/compare.json` and `results/hostile.json`, written by the HF Jobs above. The later 256-ticket, 3-seed, and Guardrails numbers come from `results/aws/sagemaker/v2-summary.json`, `results/aws/sagemaker/eval-partial/eval_from_logs.json`, and `results/aws/guardrails/summary.json`. Do not copy the planted-failure checks or a gold-JSON pipeline check into the results table.

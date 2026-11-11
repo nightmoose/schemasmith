@@ -148,3 +148,49 @@ def test_upload_source_wheel_creates_a_private_repo(tmp_path):
     assert repo == "example-user/schemasmith-src"
     assert calls[0][1]["private"] is True
     assert calls[1][1]["path_in_repo"] == WHEEL
+
+
+def test_aws_card_numbers_match_result_files():
+    """v2 and Guardrails figures on the card come from the result files, not literals."""
+    from schemasmith.hf.cards import adapter_card, aws_results_section, load_aws_result_files
+
+    v2, ablation, guard = load_aws_result_files()
+    assert v2 is not None and ablation is not None and guard is not None
+    section = aws_results_section(v2, ablation, guard)
+    card = adapter_card("dpo")
+    assert "99.00%" in section and "99.00%" in card
+    assert "99.44%" in section
+    assert "98.72%" in section
+    assert "97.66%" in section
+    assert "95.98%" in section
+    assert "8.3" in section and "9.3" in section
+    assert "0%" in section
+    dpo = guard["systems"]["v1/dpo"]
+    followed = dpo["hostile_v2"]["model_followed_injection"]
+    released = dpo["hostile_v2"]["followed_and_released"]
+    n_inj = dpo["hostile_v2"]["injection_tickets"]
+    fp = dpo["heldout"]["false_positive_blocks"]
+    assert f"from {followed} of {n_inj} to {released} of {n_inj}" in section
+    assert f"with {fp} false-positive blocks" in section
+    assert "3 seeds" in section
+    assert "30 rows" in section
+    # Dataset card stays MIT; adapters stay CC-BY-NC-4.0.
+    from schemasmith.hf.cards import dataset_card
+
+    assert "license: mit" in dataset_card()
+    assert "license: cc-by-nc-4.0" in adapter_card("sft")
+
+
+def test_committed_cards_match_generator():
+    from pathlib import Path
+
+    from schemasmith.hf.publish import build_publish_plan
+
+    dest = Path("cards")
+    plan = build_publish_plan(namespace="nightmoose", public=False, execute=False)
+    # Compare against the committed copies; the test rewrites nothing if they match.
+    for item in plan.items:
+        name = item.repo_id.split("/", 1)[1] + ".md"
+        committed = dest / name
+        assert committed.is_file(), f"missing committed card {name}"
+        assert committed.read_text(encoding="utf-8") == item.card_markdown
