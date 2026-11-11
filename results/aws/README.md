@@ -1,10 +1,10 @@
 # AWS runs (Nov 10, 2026): v1 re-scored on bigger and blind sets, plus Nova references
 
-Status: **eval only. No v2 model was trained yet.** The v2 training code (adversarial
-rows, multi-seed SFT then DPO) is in `src/schemasmith/aws/run.py`, but the AWS account has
-0 vCPU of G-instance quota. Increase requests to 8 vCPU (on-demand and spot) were filed
-Nov 10, 2:31 PM ET and were still in case review at 4:05 PM ET. Nothing here changes the
-headline tables in the top-level README.
+Status: **v1 CPU eval and Nova references below are complete.** v2 SageMaker training
+and eval later the same day also finished; those numbers are in
+`results/aws/sagemaker/README.md` and are now summarized in the top-level README.
+Guardrails results are in `results/aws/guardrails/README.md`. The tables in this file
+are the v1 CPU / Nova reference runs only.
 
 ## What ran where
 
@@ -77,9 +77,8 @@ $0.33 / $2.75 per 1M tokens): about $20 (Micro), $35 (Lite), $283 (2 Lite), and 
 per 1M tickets. Median latency was 0.5 to 0.7 s per ticket. Tiny Aya on a 16-vCPU CPU box ran
 about 3.0 s per ticket batched; the README's L4 number is 3.67 s unbatched.
 
-## SageMaker v2 training (in progress)
+## SageMaker v2 training (finished)
 
-G-instance training ran Nov 10 evening. Three of four training jobs completed
-(v1-data ablation, v2 seeds 2 and 3). Seed 1 was still in DPO at 7:20 PM ET.
-The ablation has a same-GPU eval in `sagemaker/README.md`. v2 seed eval is in
-flight. Headline v1 CPU / Nova tables above are unchanged until that finishes.
+All four training jobs and all evals finished Nov 10. Final tables, job ids,
+instance types, and spend are in `sagemaker/README.md`. Headline v1 CPU / Nova
+tables above are unchanged; they are the reference runs, not the v2 scores.

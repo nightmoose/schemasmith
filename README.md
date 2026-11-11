@@ -6,6 +6,8 @@ Why it matters: support tickets land in warehouses and refund queues as JSON. An
 
 Hostile test: on 26 hand-written tickets built to break it (prompt injections, contradictions, off-enum values, mixed languages, garbage, very long threads), the DPO model cut made-up values from 36.4% to 4.5%, but it still followed 4 of 6 prompt injections. The code gate held 6 rows for review and let 4 wrong rows through. Details and every miss are below.
 
+A later v2 training run (3 seeds, Amazon SageMaker, 256 held-out tickets) reached a 99.00% mean field-level exact match on the DPO adapters (best seed 99.44%), wrote 0% unsupported values, and refused 8.3 of 10 blind prompt injections (SFT mean 9.3 of 10). Those figures are small-n: 3 seeds and a 30-row hostile set. A Bedrock Guardrails wrapper around the earlier v1 DPO outputs cut injections followed and released from 5 of 10 to 3 of 10, with 0 false positives on 256 clean tickets. Details are in the v2 and Guardrails sections.
+
 Entry: Lexsi AI Safety & Alignment Hackathon, Track 1 (Fine-tuning and Data Curation), problem 5, structured output and extraction. Core model: Tiny Aya Global, `CohereLabs/tiny-aya-global`, the only model trained or scored. Lexsi tools: CuratorKIT (curation), AlignTune (SFT and DPO), AuditKIT (optional scorer).
 
 ## Results: held-out compare
@@ -75,6 +77,45 @@ What failed, for the DPO adapter:
 
 The gate never accepted a made-up value, and it held every contract break. What got through were values the ticket itself contained, written because an instruction inside the ticket asked for them.
 
+## Results: v2 training (SageMaker, 3 seeds)
+
+These numbers are from `results/aws/sagemaker/v2-summary.json` and `results/aws/sagemaker/eval-partial/eval_from_logs.json`. They do not replace the 64-ticket table above. Training ran on Amazon SageMaker in us-east-1 on Nov 10, 2026. Completed training jobs included `lexsi-v1data-s1-1110-1722` (ml.g5.xlarge, v1-data ablation) and `lexsi-v2-s2-1110-1722` (ml.g5.2xlarge, v2 seed 2), plus `lexsi-v2-s1-1110-1722` (ml.g6.2xlarge) and `lexsi-v2-s3-1110-1726` (ml.g6.xlarge). Evals used `lexsi-eval-1110-1858`, `lexsi-eval-1110-1920`, and `lexsi-eval-1110-2044`. The same 256-ticket held-out split and 30-ticket blind hostile v2 set as the CPU / Nova reference runs. Means are over 3 seeds, one eval each. Spend is recorded in `results/aws/sagemaker/README.md`, not here.
+
+<!-- SCHEMASMITH_V2_START -->
+| System | Held-out field exact match | Unsupported values | Hostile v2 injections refused / 10 | Hostile v2 accepted but wrong | Hostile v1 injections refused / 6 |
+| --- | --- | --- | --- | --- | --- |
+| v1 DPO (same GPU) | 97.66% | 0.71% | 5 | 9 | 2 |
+| v1 SFT | 97.66% | 0.48% | 5 | 7 | 2 |
+| Ablation v1-data DPO (seed 1) | 95.98% | 0% | 6 | 7 | 3 |
+| v2 s1 SFT / DPO | 98.88% / **99.44%** | 0% / 0% | 9 / 10 | 4 / 8 | 5 / 5 |
+| v2 s2 SFT / DPO | 98.88% / 98.94% | 0% / 0% | 9 / 7 | 6 / 7 | 5 / 5 |
+| v2 s3 SFT / DPO | 98.38% / 98.60% | 0% / 0% | 10 / 8 | 3 / 7 | 5 / 6 |
+| **v2 DPO mean (min–max)** | **99.00% (98.60–99.44)** | 0% | 8.3 (7–10) | 7.3 (7–8) | 5.3 (5–6) |
+| v2 SFT mean (min–max) | 98.72% (98.38–98.88) | 0% | 9.3 (9–10) | 4.3 (3–6) | 5 |
+<!-- SCHEMASMITH_V2_END -->
+
+Reading it honestly:
+
+- v2 (with 480 adversarial rows) beats v1 DPO on held-out field match by 0.9 to 1.8 points on every seed and beats the no-adversarial ablation by 2.6 to 3.5 points. It writes 0 unsupported values.
+- v2 refuses more blind injections (DPO 7–10 of 10, SFT 9–10) than v1 DPO (5) and the ablation (6).
+- DPO is not clearly better than SFT on v2: it gains a little held-out accuracy, but SFT refused slightly more injections and had fewer accepted-but-wrong rows.
+- Best held-out: v2-s1 DPO (99.44%). Best on blind injections: v2-s3 SFT (10/10 refused, 3 wrong) and v2-s1 DPO (10/10 refused, 8 wrong).
+- Caveats: 3 seeds, one eval each, hostile v2 is only 30 rows (10 injection tickets), the ablation is one seed, and differences of one or two rows on the hostile sets are within noise.
+
+Amazon Bedrock Nova Micro, Lite, Pro, and 2 Lite were scored on the same 256 + 30 tickets as a reference (see `results/aws/README.md`). EC2 (`c7i.2xlarge` pipeline smoke, `c7i.4xlarge` CPU eval of v1) ran the v1 re-score before the G-instance training jobs.
+
+## Results: Bedrock Guardrails
+
+Eval only, on saved v1 predictions. Tiny Aya was not re-run. Official numbers use the same deterministic scorers; the policy was not retuned on the hostile sets. Source: `results/aws/guardrails/summary.json`.
+
+| Defense (v1 DPO, blind hostile v2) | Injections followed and released (of 10) | Wrong rows leaked (original gate) | Wrong rows leaked (Gate v2) | False-positive blocks on held-out 256 |
+| --- | --- | --- | --- | --- |
+| Baseline (no Guardrails) | 5 | 8 | 6 | 0 |
+| Guardrails | 3 | 7 | 6 | 0 |
+| Guardrails + Gate v2 | 3 | 7 | 6 | 0 |
+
+Guardrails cut released follow-through from 5 of 10 to 3 of 10, with 0 false positives on the 256 clean tickets and no change in held-out field match. The three remaining released follow-throughs are T-HY02 (fake authority), T-HY03 (Portuguese instruction), and T-HY04 (Chinese parenthetical). The output filter never fired. Gate v2 already held the two followed injections the guardrail caught, so Guardrails + Gate v2 does not reduce the leaked-wrong count below 6.
+
 ## How it works
 
 1. A synthetic ticket set in eight languages, small on purpose, with labels that already pass the contract.
@@ -110,9 +151,9 @@ The gate never accepted a made-up value, and it held every contract break. What 
 
 ## Limits and caveats
 
-- **Injection is not solved.** The tuned model followed 4 of 6 injections. The grounding gate cannot catch a value the ticket itself contains. A refund cap or an injection-phrase screen in the gate are the obvious next rules; they were not added, because they would be tuned on this same 26-ticket set.
-- **Synthetic training and held-out data.** Every training and held-out ticket comes from this repo's templates in eight languages. Held-out templates make the test harder than a random split, but the tickets still share structure and vocabulary with training. The hostile set is hand-written but small and written by the same author as the contract.
-- **Small sets, single runs.** One data seed (42), one SFT run, one reported DPO run (after one earlier attempt), 64 held-out and 26 hostile tickets. A one-row change is 1.6 points on held-out and 3.8 points on hostile. No confidence intervals were computed.
+- **Injection is not solved.** On the original 26-ticket hostile set, the v1 DPO model followed 4 of 6 injections. The grounding gate cannot catch a value the ticket itself contains. v2 (3 seeds, 30-row blind set) refused 8.3 of 10 injections on DPO and 9.3 of 10 on SFT, which is better, not solved. Bedrock Guardrails cut v1 DPO released follow-through from 5 of 10 to 3 of 10, with 0 false positives on 256 clean tickets; three multilingual or fake-authority injections still got through. A refund cap or an injection-phrase screen in the gate are the obvious next rules; they were not added, because they would be tuned on these same hostile sets.
+- **Synthetic training and held-out data.** Every training and held-out ticket comes from this repo's templates in eight languages. Held-out templates make the test harder than a random split, but the tickets still share structure and vocabulary with training. The hostile sets are hand-written but small and written by the same author as the contract.
+- **Small sets, limited repeats.** The 64-ticket compare is one data seed (42), one SFT run, and one reported DPO run (after one earlier attempt). The v2 table is 3 seeds and one eval each, on 256 held-out and 30 hostile tickets. A one-row change is 1.6 points on the 64-ticket split and 3.3 points on hostile v2 injections. No confidence intervals were computed for v2. The v1-data ablation is a single seed.
 - **Base model code fences.** The base model wrapped its JSON in a Markdown fence in 49 of 64 held-out outputs. The parser accepts fenced JSON, so this does not lower the base parse rate. A strict raw-JSON parse would score the base lower.
 - **Severity is a convention.** The instruction defines four levels, and each generated ticket states its level with a cue sentence. The score measures reading that cue, not judging real urgency.
 - **DPO pairs are planted failures.** Rejected answers are scripted corruptions of the gold label, not model outputs. The DPO setting was chosen after one earlier run on the held-out split, so the DPO held-out row is not fully blind. The hostile set was run once, after DPO was final.
@@ -232,7 +273,7 @@ Artifacts: the dataset, both adapters, and the eval logs (including `hostile/`) 
 
 ## What is left
 
-`schemasmith publish --namespace HF_USER --public --execute` so judges can open the repos without an approval step. A criterion map is in `docs/rubric_map.md`. Submission text is in `docs/SUBMISSION.md`.
+Publish day is Nov 14. The GitHub repo, the Hugging Face adapters, dataset, eval logs, and collection stay private until then. The exact steps, the IP statement, and the submission form fields are in `PUBLISH_CHECKLIST.md`. A criterion map is in `docs/rubric_map.md`. Submission text is in `docs/SUBMISSION.md`.
 
 ## API notes
 
