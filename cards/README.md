@@ -7,4 +7,4 @@ These markdown files are the dataset and adapter cards to upload on publish day 
 | `schemasmith-support-tickets.md` | dataset `nightmoose/schemasmith-support-tickets` | MIT |
 | `schemasmith-tiny-aya-sft.md` | model `nightmoose/schemasmith-tiny-aya-sft` | CC-BY-NC-4.0 |
 | `schemasmith-tiny-aya-dpo.md` | model `nightmoose/schemasmith-tiny-aya-dpo` | CC-BY-NC-4.0 |
-| `schemasmith-eval-logs.md` | dataset `nightmoose/schemasmith-eval-logs` | MIT |
+| `schemasmith-eval-logs.md` | dataset `nightmoose/schemasmith-eval-logs` | CC-BY-NC-4.0 |

@@ -6,4 +6,8 @@ This repository’s original code is licensed under the **MIT License**.
 
 **Model weights:** Cohere Tiny Aya / Aya family weights used here are **CC-BY-NC-4.0** (non-commercial). See the model card on Hugging Face for terms.
 
+**Dataset:** the synthetic support tickets are original work and are licensed under the **MIT License**.
+
+**Eval logs:** generations from Tiny Aya and its adapters are **CC-BY-NC-4.0** (non-commercial).
+
 Do not vendor or re-license Lexsi LSAL source into this MIT tree.

@@ -32,4 +32,4 @@ A Gradio page replays a recorded run: real base, SFT, and DPO outputs on the sam
 
 ## Licenses
 
-Repository code is MIT. Tiny Aya weights are CC-BY-NC-4.0. CuratorKIT and AuditKIT stay external under the Lexsi Labs Source Available License and are not copied into the repository.
+Repository code and the synthetic dataset are MIT. Tiny Aya weights, both adapters, and the eval logs are CC-BY-NC-4.0. CuratorKIT and AuditKIT stay external under the Lexsi Labs Source Available License and are not copied into the repository.

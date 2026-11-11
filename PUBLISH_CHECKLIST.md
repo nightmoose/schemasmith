@@ -15,7 +15,7 @@ Deadline context: Lexsi is scheduled to go public on Nov 14. Official submission
   - `nightmoose/schemasmith-tiny-aya-sft` (private, ungated, license `cc-by-nc-4.0`)
   - `nightmoose/schemasmith-tiny-aya-dpo` (private, ungated, license `cc-by-nc-4.0`)
   - `nightmoose/schemasmith-support-tickets` (private, ungated; the live card currently has no `license:` field — upload the MIT card from `cards/` as part of the publish step)
-  - `nightmoose/schemasmith-eval-logs` (private, ungated, license `mit`)
+  - `nightmoose/schemasmith-eval-logs` (private, ungated; live card was still `mit` as of Nov 11 — upload the CC-BY-NC-4.0 card from `cards/` as part of the publish step)
   - `nightmoose/schemasmith-src` (private wheel repo; see step 3)
   - No SchemaSmith Hugging Face collection existed yet on Nov 11; `schemasmith publish` creates one titled SchemaSmith.
 
@@ -48,13 +48,33 @@ schemasmith publish --namespace nightmoose --public --execute \
   --eval-dir reports
 ```
 
-`--public` makes the four publish-plan repos and the collection public and ungated. Adapter cards must remain `cc-by-nc-4.0`. Dataset and eval-log cards remain MIT. Do not gate any of these repos.
+`--public` makes the four publish-plan repos and the collection public and ungated. After the card upload, each repo's `license:` metadata must be: adapters `cc-by-nc-4.0`, eval logs `cc-by-nc-4.0`, dataset `mit`. Do not gate any of these repos.
 
 Equivalent manual flips if the command is not used:
 
-1. Hugging Face: Settings → change each of the four repos from private to public, confirm `gated` is off, confirm the license YAML on each card.
+1. Hugging Face: Settings → change each of the four repos from private to public, confirm `gated` is off, confirm the license YAML on each card matches the mapping above.
 2. Create (or unhide) the collection titled SchemaSmith under `nightmoose`, public, containing those four repos.
 3. GitHub: change `nightmoose/schemasmith` from private to public (Settings → Change repository visibility). Do this after the Hub artifacts are public, so the README links resolve.
+
+### Verify Hub `license:` metadata (read-only)
+
+After the cards are uploaded, and again after the public flip, read each repo's license back from the Hub. This does not change visibility and does not upload anything. `HF_TOKEN` must be in the environment (do not print it):
+
+```bash
+python scripts/verify_hf_licenses.py --namespace nightmoose
+```
+
+The script must report all four matches:
+
+| Hub repo | `license:` |
+| --- | --- |
+| `nightmoose/schemasmith-tiny-aya-sft` | `cc-by-nc-4.0` |
+| `nightmoose/schemasmith-tiny-aya-dpo` | `cc-by-nc-4.0` |
+| `nightmoose/schemasmith-eval-logs` | `cc-by-nc-4.0` |
+| `nightmoose/schemasmith-support-tickets` | `mit` |
+
+If any `found` value differs, fix the card and re-upload that repo's `README.md` before submitting. Do not flip visibility to work around a mismatch.
+
 
 ## 2. Signed-out check
 
@@ -68,7 +88,7 @@ In a signed-out or private window, open:
 - the collection URL printed by the publish command
 - the recorded demo (`space/app.py` in the public repo, or a Space if one is added later)
 
-Confirm: no login wall, no gate, cards show the v1 64-ticket numbers and the v2 / Guardrails numbers, licenses are correct, and there is no Astrodata, no pricing or sales pitch, and no mention of bots building the work.
+Confirm: no login wall, no gate, cards show the v1 64-ticket numbers and the v2 / Guardrails numbers, licenses are adapters and eval logs `cc-by-nc-4.0` and dataset `mit`, and there is no Astrodata, no pricing or sales pitch, and no mention of bots building the work.
 
 ## 3. `schemasmith-src` (the fifth Hub repo)
 
@@ -85,7 +105,7 @@ The official page asks for a Hugging Face model collection and a Hugging Face da
 
 Official rules (https://hackathon.lexsi.ai/): teams retain ownership of the solutions they develop; organizers may showcase submitted projects for event and promotional purposes; contributions should be unique and the team's own work. Alex must own and, if the form requires it, sign this himself. Draft for him to edit, not for a bot to submit:
 
-> I, Alex Suarez (GitHub @nightmoose, Hugging Face @nightmoose), am the sole member of team Lexsi SchemaSmith. This entry is my original work, developed during the Lexsi AI Safety & Alignment Hackathon. It uses documented open-source and source-available libraries (CuratorKIT, AlignTune, and AuditKIT as external dependencies; Tiny Aya Global under CC-BY-NC-4.0). I retain ownership of the solutions I developed. I understand that the organizers may showcase the submitted project for event and promotional purposes. Repository code is MIT. Adapters derived from Tiny Aya Global are CC-BY-NC-4.0, non-commercial. The synthetic ticket dataset is original work licensed MIT.
+> I, Alex Suarez (GitHub @nightmoose, Hugging Face @nightmoose), am the sole member of team Lexsi SchemaSmith. This entry is my original work, developed during the Lexsi AI Safety & Alignment Hackathon. It uses documented open-source and source-available libraries (CuratorKIT, AlignTune, and AuditKIT as external dependencies; Tiny Aya Global under CC-BY-NC-4.0). I retain ownership of the solutions I developed. I understand that the organizers may showcase the submitted project for event and promotional purposes. Repository code is MIT. The synthetic ticket dataset is original work licensed MIT. Adapters derived from Tiny Aya Global, and the eval logs of their outputs, are CC-BY-NC-4.0, non-commercial.
 
 Paste the form's exact wording if it differs. Do not add any mention of assistants, bots, or third-party builders.
 

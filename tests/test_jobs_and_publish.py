@@ -174,11 +174,16 @@ def test_aws_card_numbers_match_result_files():
     assert f"with {fp} false-positive blocks" in section
     assert "3 seeds" in section
     assert "30 rows" in section
-    # Dataset card stays MIT; adapters stay CC-BY-NC-4.0.
-    from schemasmith.hf.cards import dataset_card
+    # Dataset card stays MIT; adapters and eval logs are CC-BY-NC-4.0.
+    from schemasmith.hf.cards import HUB_LICENSES, dataset_card, eval_logs_card
 
+    assert HUB_LICENSES["dataset"] == "mit"
+    assert HUB_LICENSES["sft"] == HUB_LICENSES["dpo"] == HUB_LICENSES["eval_logs"] == "cc-by-nc-4.0"
     assert "license: mit" in dataset_card()
+    assert "license: cc-by-nc-4.0" not in dataset_card().split("---", 2)[1]
     assert "license: cc-by-nc-4.0" in adapter_card("sft")
+    assert "license: cc-by-nc-4.0" in eval_logs_card()
+    assert eval_logs_card().split("---", 2)[1].split("license:", 1)[1].split()[0] == "cc-by-nc-4.0"
 
 
 def test_committed_cards_match_generator():
@@ -194,3 +199,68 @@ def test_committed_cards_match_generator():
         committed = dest / name
         assert committed.is_file(), f"missing committed card {name}"
         assert committed.read_text(encoding="utf-8") == item.card_markdown
+
+
+def test_eval_logs_card_license_is_cc_by_nc():
+    from schemasmith.hf.cards import HUB_LICENSES, eval_logs_card
+    from schemasmith.hf.publish import build_publish_plan
+
+    assert HUB_LICENSES["eval_logs"] == "cc-by-nc-4.0"
+    front = eval_logs_card().split("---", 2)[1]
+    assert "license: cc-by-nc-4.0" in front
+    assert "license: mit" not in front
+    plan = build_publish_plan(namespace="nightmoose", public=False, execute=False)
+    logs = next(item for item in plan.items if item.repo_id.endswith("schemasmith-eval-logs"))
+    assert "license: cc-by-nc-4.0" in logs.card_markdown.split("---", 2)[1]
+
+
+def test_verify_hub_licenses_is_read_only_and_checks_expected_ids():
+    from schemasmith.hf.licenses import expected_repo_licenses, verify_hub_licenses
+
+    expected = {item["repo_id"]: item["license"] for item in expected_repo_licenses("nightmoose")}
+    assert expected["nightmoose/schemasmith-support-tickets"] == "mit"
+    assert expected["nightmoose/schemasmith-tiny-aya-sft"] == "cc-by-nc-4.0"
+    assert expected["nightmoose/schemasmith-tiny-aya-dpo"] == "cc-by-nc-4.0"
+    assert expected["nightmoose/schemasmith-eval-logs"] == "cc-by-nc-4.0"
+
+    class Card:
+        def __init__(self, license):
+            self.license = license
+
+    class Info:
+        def __init__(self, license):
+            self.card_data = Card(license)
+            self.private = True
+
+    class Api:
+        def __init__(self):
+            self.calls = []
+            self.licenses = dict(expected)
+
+        def model_info(self, repo_id):
+            self.calls.append(("model_info", repo_id))
+            return Info(self.licenses[repo_id])
+
+        def dataset_info(self, repo_id):
+            self.calls.append(("dataset_info", repo_id))
+            return Info(self.licenses[repo_id])
+
+        def update_repo_visibility(self, *args, **kwargs):
+            raise AssertionError("verify must not change visibility")
+
+        def upload_file(self, *args, **kwargs):
+            raise AssertionError("verify must not upload")
+
+    api = Api()
+    assert verify_hub_licenses(api, "nightmoose") == []
+    assert {c[0] for c in api.calls} == {"model_info", "dataset_info"}
+    api.licenses["nightmoose/schemasmith-eval-logs"] = "mit"
+    mismatches = verify_hub_licenses(api, "nightmoose")
+    assert mismatches == [
+        {
+            "repo_id": "nightmoose/schemasmith-eval-logs",
+            "repo_type": "dataset",
+            "expected": "cc-by-nc-4.0",
+            "found": "mit",
+        }
+    ]

@@ -87,7 +87,7 @@ schemasmith publish --namespace HF_USER --execute \
   --eval-dir reports
 ```
 
-The first command writes cards and makes no Hub call. The second, with `--public`, uploads public ungated repos and a public collection. Adapter cards state the CC-BY-NC-4.0 license. Private job uploads are only a staging copy. Judges need the public publish.
+The first command writes cards and makes no Hub call. The second, with `--public`, uploads public ungated repos and a public collection. Adapter and eval-log cards state the CC-BY-NC-4.0 license; the dataset card is MIT. After upload, `python scripts/verify_hf_licenses.py --namespace HF_USER` reads each repo's license back from the Hub (read-only; it does not change visibility). Private job uploads are only a staging copy. Judges need the public publish.
 
 ## Space
 

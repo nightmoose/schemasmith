@@ -11,15 +11,27 @@ import json
 from pathlib import Path
 from typing import Any
 
+# Hub license ids that must appear in each card YAML and in Hub metadata.
+# Dataset stays MIT (original synthetic tickets). Adapters and eval logs
+# (model outputs) are CC-BY-NC-4.0, per Alex's Nov 11 decision.
+HUB_LICENSES = {
+    "dataset": "mit",
+    "sft": "cc-by-nc-4.0",
+    "dpo": "cc-by-nc-4.0",
+    "eval_logs": "cc-by-nc-4.0",
+}
+
 LICENSE_NOTE = """\
 ## Licenses
 
 The training and evaluation code in the SchemaSmith repository is MIT.
+The synthetic support-ticket dataset is original work and is MIT.
 
 The core model is Tiny Aya Global, `CohereLabs/tiny-aya-global`.
 No other model is trained or scored as the submission model.
-Those weights, and every adapter derived from them, are CC-BY-NC-4.0.
-Public adapter repos are not gated. The license is this card.
+Those weights, every adapter derived from them, and the eval logs
+(model outputs) are CC-BY-NC-4.0, non-commercial.
+Public adapter and eval-log repos are not gated. The license is this card.
 
 CuratorKIT and AuditKIT are external dependencies under the Lexsi Labs
 Source Available License. Their source is not in this repository.
@@ -185,7 +197,7 @@ def aws_results_section(
 
 def dataset_card() -> str:
     return f"""---
-license: mit
+license: {HUB_LICENSES["dataset"]}
 tags:
 - schemasmith
 configs:
@@ -213,7 +225,7 @@ configs:
 Synthetic multilingual support tickets and the contract-valid JSON labels
 used to train a small extractor. This card does not report model scores.
 The tickets are original work in this repository and are licensed MIT.
-Adapters derived from Tiny Aya Global are separately licensed CC-BY-NC-4.0.
+Adapters and eval logs derived from Tiny Aya Global are CC-BY-NC-4.0.
 
 {LICENSE_NOTE}
 """
@@ -232,7 +244,7 @@ def adapter_card(kind: str, compare: dict | None = None, hostile: dict | None = 
         "after that command has been run."
     )
     return f"""---
-license: cc-by-nc-4.0
+license: {HUB_LICENSES[kind]}
 base_model: CohereLabs/tiny-aya-global
 tags:
 - schemasmith
@@ -254,7 +266,7 @@ def eval_logs_card(compare: dict | None = None, hostile: dict | None = None) -> 
     lead = results_lead(compare, hostile)
     aws = aws_results_section()
     return f"""---
-license: mit
+license: {HUB_LICENSES["eval_logs"]}
 tags:
 - schemasmith
 ---
@@ -267,6 +279,9 @@ tags:
 predictions with per-ticket seconds. If a file is missing, that measurement
 has not been uploaded. AWS v2 and Guardrails measurements live in the
 GitHub repository under `results/aws/` and are not in this dataset yet.
+
+These logs contain generations from Tiny Aya Global and its adapters
+and are licensed CC-BY-NC-4.0, non-commercial. The repo is not gated.
 
 {LICENSE_NOTE}
 """

@@ -86,5 +86,7 @@ def test_cards_lead_with_the_measured_headline():
     assert body.index("Made-up field values: 32.9% to 0%") < body.index("Core model")
     assert "license: cc-by-nc-4.0" in card
     assert "injections refused" in card
-    assert "Made-up field values" in eval_logs_card(compare, hostile)
+    logs = eval_logs_card(compare, hostile)
+    assert "Made-up field values" in logs
+    assert "license: cc-by-nc-4.0" in logs.split("---", 2)[1]
     assert "Made-up field values" not in adapter_card("sft")

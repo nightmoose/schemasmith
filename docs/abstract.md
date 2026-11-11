@@ -12,4 +12,4 @@ Method: a small synthetic set in eight languages with contract-valid labels; Cur
 
 Limits: training and held-out tickets are synthetic and template-based; the 64-ticket compare is a single run, and that DPO setting was chosen after one earlier run on the same split; v2 is 3 seeds and 30 hostile rows; injection is improved, not solved.
 
-Code is MIT. Tiny Aya weights and both adapters are CC-BY-NC-4.0, non-commercial. Lexsi source-available tools are dependencies and are not copied into the repository.
+Code and the synthetic dataset are MIT. Tiny Aya weights, both adapters, and the eval logs are CC-BY-NC-4.0, non-commercial. Lexsi source-available tools are dependencies and are not copied into the repository.
