@@ -97,4 +97,4 @@ Reading it honestly:
 | lexsi-eval-1110-2044 (v2-s1 + v1 re-score) | ml.g5.xlarge | 903 | $0.353 |
 
 Earlier settled spend was $7.10 (failed/stopped attempts, ablation, v2-s2, v2-s3, first eval).
-**Total SageMaker about $9.54 of the $40 cap.** Teardown verified 9:05 PM ET: no training jobs in progress, no endpoints, no notebook instances, no running EC2.
+**Total SageMaker about $9.54 of the $40 cap.** Teardown verified 9:02 PM ET: no training jobs in progress, no endpoints, no notebook instances, no running EC2.
