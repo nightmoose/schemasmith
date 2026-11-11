@@ -1,0 +1,78 @@
+# P8 lakehouse proof. Plan-and-apply-and-destroy in one job.
+# Branch-scoped on purpose: never runs on main, never targets ContractGate
+# prod or Fly. Assumes nmb-terraform-deploy via GitHub OIDC.
+#
+# If AssumeRoleWithWebIdentity is denied, stop and report the live trust
+# condition. Do not change the IAM trust policy from this workflow.
+name: P8 lakehouse (S3 Iceberg Athena)
+
+on:
+  push:
+    branches: [aws/p8-lakehouse]
+    paths:
+      - "examples/aws-lakehouse/**"
+      - ".github/workflows/aws-p8-lakehouse.yml"
+      - "!examples/aws-lakehouse/results/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: p8-lakehouse
+  cancel-in-progress: false
+
+jobs:
+  lakehouse:
+    name: apply, run, destroy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_REGION: us-east-1
+      AWS_ACCOUNT_ID: "065614567889"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install
+        run: pip install -r examples/aws-lakehouse/requirements.txt
+
+      - name: Local contract check (no AWS)
+        working-directory: examples/aws-lakehouse/scripts
+        run: python local_check.py
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::065614567889:role/nmb-terraform-deploy
+          aws-region: us-east-1
+          role-session-name: gha-p8-lakehouse
+
+      - name: Caller identity (arn only)
+        run: aws sts get-caller-identity --query '{Account:Account,Arn:Arn}' --output table
+
+      - name: Run lakehouse proof
+        run: python examples/aws-lakehouse/scripts/lakehouse.py run --records 10000 --output results/aws/lakehouse
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p8-lakehouse-results
+          path: results/aws/lakehouse/
+          if-no-files-found: warn
+
+      - name: Tear down bucket, workgroup, and Glue catalog
+        if: always()
+        run: python examples/aws-lakehouse/scripts/lakehouse.py down
