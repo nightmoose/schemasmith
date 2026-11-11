@@ -1,14 +1,13 @@
 # SageMaker training (Nov 10, 2026): Lexsi v2 seeds and v1-data ablation
 
-Status: **three of four training jobs completed successfully.** Seed 1
-(`lexsi-v2-s1-1110-1722`) was still in DPO at 7:20 PM ET. Eval of the
-ablation (and a same-GPU v1 re-score) is in the table below. Eval of
-v2 seeds 2 and 3 is in flight as `lexsi-eval-1110-1920` after the first
-eval job hit a SageMaker `*-manifest` channel and exited before scoring
-`v2-s2`.
+Status: **all four training jobs and all evals finished.** Seed 1 completed at
+7:23 PM ET and was scored by `lexsi-eval-1110-2044`; seeds 2 and 3 were scored by
+`lexsi-eval-1110-1920`. Raw outputs: `eval-v2/` (v1, v2-s2, v2-s3), `eval-v2-s1/`
+(v1 re-score, v2-s1), `eval-partial/` (ablation). `v2-summary.json` is built by
+`scripts/sagemaker/summarize.py`. One run per seed, so the spread is only 3 seeds.
 
-Nothing here replaces the v1 CPU / Nova tables in `results/aws/README.md`
-until the remaining jobs and the v2 eval finish.
+Nothing here replaces the v1 CPU / Nova tables in `results/aws/README.md`;
+it adds same-GPU v2 numbers.
 
 ## Training jobs that completed
 
@@ -64,3 +63,38 @@ for v1 DPO. v2 seeds are not in this table yet.
 Failed/stopped attempts $2.155 + completed training $4.496 + failed first
 eval $0.453 = **$7.10**. Seed 1 and the second eval are still running.
 Cap was about $40. Prices are SageMaker Training on-demand us-east-1.
+
+## Final v2 results (3 seeds, same GPU eval, held-out 256, hostile v1 26, blind hostile v2 30)
+
+| System | Held-out field exact match | Unsupported values | Hostile v2 refused / 10 | Hostile v2 accepted but wrong | Hostile v1 refused / 6 |
+| --- | --- | --- | --- | --- | --- |
+| v1 DPO (this GPU) | 97.66% | 0.71% | 5 | 9 | 2 |
+| v1 SFT | 97.66% | 0.48% | 5 | 7 | 2 |
+| Ablation v1-data DPO (seed 1) | 95.98% | 0% | 6 | 7 | 3 |
+| v2 s1 SFT / DPO | 98.88% / **99.44%** | 0% / 0% | 9 / 10 | 4 / 8 | 5 / 5 |
+| v2 s2 SFT / DPO | 98.88% / 98.94% | 0% / 0% | 9 / 7 | 6 / 7 | 5 / 5 |
+| v2 s3 SFT / DPO | 98.38% / 98.60% | 0% / 0% | 10 / 8 | 3 / 7 | 5 / 6 |
+| **v2 DPO mean (min–max)** | **99.00% (98.60–99.44)** | 0% | 8.3 (7–10) | 7.3 (7–8) | 5.3 (5–6) |
+| v2 SFT mean (min–max) | 98.72% (98.38–98.88) | 0% | 9.3 (9–10) | 4.3 (3–6) | 5 |
+
+Reading it honestly:
+- v2 (with 480 adversarial rows) beats v1 DPO on held-out field match by 0.9 to 1.8 points on every seed
+  and beats the no-adversarial ablation by 2.6 to 3.5 points. It writes 0 unsupported values.
+- v2 refuses more blind injections (DPO 7–10 of 10, SFT 9–10) than v1 DPO (5) and the ablation (6).
+- DPO is not clearly better than SFT on v2: it gains a little held-out accuracy, but SFT
+  refused slightly more injections and had fewer accepted-but-wrong rows. DPO also had lower
+  schema-valid counts on the hostile sets (e.g. s2 DPO 19/30 vs SFT 26/30).
+- Best held-out: v2-s1 DPO (99.44%). Best on blind injections: v2-s3 SFT (10/10 refused, 3 wrong) and v2-s1 DPO (10/10 refused, 8 wrong).
+- Caveats: 3 seeds, one eval each, hostile v2 is only 30 rows (10 injection tickets), the ablation is one seed,
+  and differences of one or two rows on the hostile sets are within noise.
+
+## Jobs and cost (final)
+
+| Job | Instance | Billable s | Cost |
+| --- | --- | --- | --- |
+| lexsi-v2-s1-1110-1722 | ml.g6.2xlarge | 4905 | $1.665 |
+| lexsi-eval-1110-1920 | ml.g5.xlarge | 1073 | $0.420 |
+| lexsi-eval-1110-2044 (v2-s1 + v1 re-score) | ml.g5.xlarge | 903 | $0.353 |
+
+Earlier settled spend was $7.10 (failed/stopped attempts, ablation, v2-s2, v2-s3, first eval).
+**Total SageMaker about $9.54 of the $40 cap.** Teardown verified 9:05 PM ET: no training jobs in progress, no endpoints, no notebook instances, no running EC2.
