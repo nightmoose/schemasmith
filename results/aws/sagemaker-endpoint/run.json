@@ -1,0 +1,102 @@
+{
+  "package": "arn:aws:sagemaker:us-east-1:065614567889:model-package/lexsi-schemasmith/2",
+  "instance": "ml.g5.xlarge",
+  "name": "lexsi-schemasmith-1119-1244",
+  "events": {
+    "endpoint_create": "2026-11-19 12:44:30 EST",
+    "in_service": "2026-11-19 12:50:33 EST",
+    "tests_done": "2026-11-19 12:54:22 EST",
+    "deleted": "2026-11-19 12:54:23 EST"
+  },
+  "variant_request": {
+    "VariantName": "main",
+    "ModelName": "lexsi-schemasmith-1119-1244",
+    "InitialInstanceCount": 1,
+    "ContainerStartupHealthCheckTimeoutInSeconds": 1200,
+    "ModelDataDownloadTimeoutInSeconds": 1200,
+    "InstancePools": [
+      {
+        "InstanceType": "ml.g5.xlarge",
+        "Priority": 1
+      },
+      {
+        "InstanceType": "ml.g6.xlarge",
+        "Priority": 2
+      },
+      {
+        "InstanceType": "ml.g5.2xlarge",
+        "Priority": 3
+      },
+      {
+        "InstanceType": "ml.g4dn.xlarge",
+        "Priority": 4
+      }
+    ]
+  },
+  "production_variants": [
+    {
+      "VariantName": "main",
+      "DeployedImages": [
+        {
+          "SpecifiedImage": "763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-inference:2.6.0-gpu-py312-cu124-ubuntu22.04-sagemaker",
+          "ResolvedImage": "763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-inference@sha256:f5c4556668fe14fb9b7f97db0dd54cca324736c6ecd9cfa390b08c5c5aab0172",
+          "ResolutionTime": "2026-11-19 12:44:32.451000-05:00"
+        }
+      ],
+      "CurrentWeight": 1.0,
+      "DesiredWeight": 1.0,
+      "CurrentInstanceCount": 1,
+      "DesiredInstanceCount": 1,
+      "InstancePools": [
+        {
+          "InstanceType": "ml.g4dn.xlarge",
+          "CurrentInstanceCount": 1
+        }
+      ]
+    }
+  ],
+  "startup_seconds": 364.9,
+  "results": {
+    "heldout_n": 48,
+    "heldout": {
+      "n_parsed": 48,
+      "n_contract_valid": 48,
+      "contract_valid_rate": 1.0,
+      "schema_valid_rate": 1.0,
+      "field_exact_match": 0.9940476190476191,
+      "unsupported_value_rate": 0.0
+    },
+    "hostile_v2": {
+      "n": 30,
+      "schema_valid": 26,
+      "injection_tickets": 10,
+      "injections_refused": 9,
+      "forbidden_value_written": 0,
+      "accepted_but_wrong": 9
+    },
+    "latency_all_calls": {
+      "n": 78,
+      "p50_s": 2.703,
+      "p95_s": 2.988,
+      "max_s": 5.227
+    },
+    "latency_heldout": {
+      "n": 48,
+      "p50_s": 2.703,
+      "p95_s": 2.937,
+      "mean_new_tokens": 55.6
+    }
+  },
+  "endpoints_after_delete": [
+    [
+      "lexsi-schemasmith-1119-1244",
+      "Deleting"
+    ]
+  ],
+  "billable_hours_upper_bound": 0.1651,
+  "est_cost_usd": 0.122,
+  "served_instance": "ml.g4dn.xlarge",
+  "dtype": "float16 (T4 has no native bf16)",
+  "price_per_hour": 0.736,
+  "container_model_load_seconds": 51.3
+}

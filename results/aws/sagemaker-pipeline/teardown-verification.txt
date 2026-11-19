@@ -1,0 +1,14 @@
+Thu Nov 19 13:15:26 EST 2026
+== endpoints
+== endpoint configs (lexsi)
+== models (lexsi)
+== training InProgress
+== processing InProgress
+== transform InProgress
+== pipeline executions (all; none Executing)
+arn:aws:sagemaker:us-east-1:065614567889:pipeline/lexsi-schemasmith-pipeline/execution/wq2oo1e7trdt	Succeeded
+== notebooks
+== EC2 running/pending
+== S3 lexsi-aws prefix size
+Total Objects: 16
+   Total Size: 462749553

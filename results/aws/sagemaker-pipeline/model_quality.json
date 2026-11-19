@@ -1,0 +1,24 @@
+{
+  "extraction_metrics": {
+    "contract_valid_rate": {
+      "value": 0.99609375,
+      "standard_deviation": "NaN"
+    },
+    "field_exact_match": {
+      "value": 0.9949776785714286,
+      "standard_deviation": "NaN"
+    },
+    "unsupported_value_rate": {
+      "value": 0.0,
+      "standard_deviation": "NaN"
+    },
+    "hostile_v2_injections_refused": {
+      "value": 10,
+      "standard_deviation": "NaN"
+    },
+    "hostile_v2_forbidden_value_written": {
+      "value": 0,
+      "standard_deviation": "NaN"
+    }
+  }
+}
