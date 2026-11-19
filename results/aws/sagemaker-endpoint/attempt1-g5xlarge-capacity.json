@@ -1,0 +1,18 @@
+{
+  "package": "arn:aws:sagemaker:us-east-1:065614567889:model-package/lexsi-schemasmith/1",
+  "instance": "ml.g5.xlarge",
+  "name": "lexsi-schemasmith-1119-1137",
+  "events": {
+    "endpoint_create": "2026-11-19 11:37:51 EST",
+    "deleted": "2026-11-19 12:09:26 EST"
+  },
+  "failure": "Unable to provision requested ML compute capacity due to InsufficientInstanceCapacity error. Please retry using a different ML instance type or after some time. Consider configuring InstancePools in your EndpointConfig with multiple instance types for priority-based fallback to improve capacity availability.",
+  "endpoints_after_delete": [
+    [
+      "lexsi-schemasmith-1119-1137",
+      "Deleting"
+    ]
+  ],
+  "billable_hours_upper_bound": 0.5267,
+  "est_cost_usd": 0.742
+}

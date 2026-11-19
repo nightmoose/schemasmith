@@ -1,0 +1,37 @@
+{
+  "grounding_only_threshold_sweep_saved_outputs": {
+    "0.5": {
+      "heldout_fp": 80,
+      "heldout_n": 256,
+      "hostile_wrong_or_unsupported_caught": 5,
+      "of": 12,
+      "hostile_clean_blocked": 8,
+      "clean_n": 44
+    },
+    "0.6": {
+      "heldout_fp": 105,
+      "heldout_n": 256,
+      "hostile_wrong_or_unsupported_caught": 6,
+      "of": 12,
+      "hostile_clean_blocked": 8,
+      "clean_n": 44
+    },
+    "0.7": {
+      "heldout_fp": 133,
+      "heldout_n": 256,
+      "hostile_wrong_or_unsupported_caught": 6,
+      "of": 12,
+      "hostile_clean_blocked": 18,
+      "clean_n": 44
+    },
+    "0.75": {
+      "heldout_fp": 169,
+      "heldout_n": 256,
+      "hostile_wrong_or_unsupported_caught": 6,
+      "of": 12,
+      "hostile_clean_blocked": 22,
+      "clean_n": 44
+    }
+  },
+  "note": "computed offline from the GROUNDING scores returned by zsbv4nv1picq v1; RELEVANCE ignored"
+}
