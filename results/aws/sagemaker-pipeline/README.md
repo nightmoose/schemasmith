@@ -26,7 +26,32 @@ from S3 (`lexsi-aws/code/`: wheel built from main + `step_job.sh`), not from the
 source repo. The gated base model still needs an HF read token, which the
 execution role reads from Secrets Manager inside the job.
 
-PIPELINE_RESULTS_PLACEHOLDER
+### Execution `wq2oo1e7trdt` (seed 1, defaults): **Succeeded**, 11:34 AM – 1:13 PM ET
+
+ARN: `arn:aws:sagemaker:us-east-1:065614567889:pipeline/lexsi-schemasmith-pipeline/execution/wq2oo1e7trdt`
+
+| Step | Job | Instance | Billable s | Cost |
+| --- | --- | --- | --- | --- |
+| Train | pipelines-wq2oo1e7trdt-Train-dtcmCkosWI | ml.g5.xlarge ($1.408/hr) | 4228 | $1.654 |
+| Evaluate | pipelines-wq2oo1e7trdt-Evaluate-XgagCzGjzQ | ml.g6.xlarge ($1.127/hr) | 571 | $0.179 |
+| PackageAndScore | pipelines-wq2oo1e7trdt-PackageAndScore-sDv1hXeEoA | ml.t3.medium (~$0.05/hr) | ~225 | ~$0.003 |
+| CheckContract | condition | — | — | Outcome True |
+| Register | model package `lexsi-schemasmith/3` | — | — | $0 |
+
+Retrained candidate (same recipe and seed as the Nov 10 `v2-s1`), same eval sets:
+
+| System | Held-out contract-valid | Held-out field match | Unsupported | Hostile v1: valid / refused of 6 / forbidden | Blind v2: valid / refused of 10 / forbidden / gate accepted but wrong |
+| --- | --- | --- | --- | --- | --- |
+| Pipeline SFT | 100% | 98.94% | 0% | 22 / 5 / 1 | 28 / 9 / 1 / 3 |
+| **Pipeline SFT+DPO (registered)** | **99.61% (255/256)** | **99.50%** | 0% | 23 / 6 / 0 | 28 / **10** / 0 / 9 |
+| Nov 10 v2-s1 SFT+DPO, for reference | 100% | 99.44% | 0% | 21 / 5 / 0 | 28 / 10 / 0 / 8 |
+
+The retrain reproduces the Nov 10 seed-1 result within noise (field match 99.50% vs
+99.44%, 10/10 blind injections refused), but DPO broke the output contract on one
+held-out ticket, which the Nov 10 seed-1 run did not. That matches the paper's
+finding that DPO can break the contract on some seeds. The gate (>= 0.99) still
+passed. `evaluation.json`, `model_quality.json`, `eval_full.json` and the execution
+records are in this folder.
 
 ## 2. Model Registry: group `lexsi-schemasmith`
 
@@ -34,7 +59,7 @@ PIPELINE_RESULTS_PLACEHOLDER
 | --- | --- | --- | --- |
 | 1 | Nov 10 v2 seed-1 adapter (`lexsi-v2-s1-1110-1722`), first serving handler | held-out contract-valid 100%, field match 99.44%, unsupported 0%, blind injections refused 10/10, forbidden values 0 (eval `lexsi-eval-1110-2044`) | PendingManualApproval |
 | 2 | Same adapter, handler r2 (bf16 on Ampere/Ada, fp16 on T4, CPU fallback) | same as v1 | PendingManualApproval |
-REGISTRY_V3_PLACEHOLDER
+| 3 | Pipeline retrain (execution `wq2oo1e7trdt`), registered by the Register step | held-out contract-valid 99.61%, field match 99.50%, unsupported 0%, blind injections refused 10/10, forbidden values 0 | PendingManualApproval |
 
 Approval is left to Alex. The endpoint test built its model from the package's own
 container spec, so no package had to be approved to test it.
@@ -133,4 +158,17 @@ about **$0.23**.
 
 ## 5. Cost (computed from billable seconds and list prices; Cost Explorer lags ~24 h)
 
-COST_PLACEHOLDER
+| Item | Cost |
+| --- | --- |
+| Pipeline execution (Train $1.654 + Evaluate $0.179 + PackageAndScore ~$0.003) | $1.84 |
+| Endpoint attempts 1 and 2 (capacity failures, no instance launched) | $0 |
+| Endpoint attempt 3, ml.g4dn.xlarge ($0.736/hr), create 12:44:30 to delete 12:54:23 PM ET (upper bound 0.165 h) | ≤ $0.12 |
+| Bedrock ApplyGuardrail, 1,092 calls | $0.23 |
+| S3 (~0.46 GB of artifacts under `lexsi-aws/`, requests), CloudWatch logs | < $0.05 |
+| **Total** | **≈ $2.24 of the $60 cap** |
+
+Teardown checked after the last step: 0 endpoints, 0 endpoint configs and 0 models
+named lexsi, 0 in-progress training, processing or transform jobs, 0 executing
+pipeline runs, 0 notebook instances, 0 running EC2 instances. Left in place at $0
+idle: the pipeline definition and the model package group with its three versions.
+The S3 artifacts (~0.46 GB) cost about $0.01 a month.

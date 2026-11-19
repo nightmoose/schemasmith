@@ -1,0 +1,21 @@
+{
+    "PipelineArn": "arn:aws:sagemaker:us-east-1:065614567889:pipeline/lexsi-schemasmith-pipeline",
+    "PipelineExecutionArn": "arn:aws:sagemaker:us-east-1:065614567889:pipeline/lexsi-schemasmith-pipeline/execution/wq2oo1e7trdt",
+    "PipelineExecutionDisplayName": "seed-1",
+    "PipelineExecutionStatus": "Succeeded",
+    "CreationTime": 1795106093.635,
+    "LastModifiedTime": 1795111995.233,
+    "CreatedBy": {
+        "IamIdentity": {
+            "Arn": "arn:aws:iam::065614567889:user/nightmoose-bots",
+            "PrincipalId": "AIDAQ6RXO3HIXKRL42NLS"
+        }
+    },
+    "LastModifiedBy": {
+        "IamIdentity": {
+            "Arn": "arn:aws:iam::065614567889:user/nightmoose-bots",
+            "PrincipalId": "AIDAQ6RXO3HIXKRL42NLS"
+        }
+    },
+    "PipelineVersionId": 1
+}

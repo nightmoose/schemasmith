@@ -28,3 +28,18 @@ per type (`ml.g6.xlarge`, `ml.g6.2xlarge`, `ml.g5.xlarge`,
   built against cuDNN 9.20.0 but `LD_LIBRARY_PATH` still pointed at the
   DLC's 9.10.2. `job.sh` now prepends the pip torch / nvidia lib dirs
   and preflights `torch.backends.cudnn.version()` before training.
+
+## Pipeline, registry and endpoint (Nov 19, 2026)
+
+S3 works from the box now for the existing `sagemaker-lexsi-065614567889` bucket
+(CreateBucket is still denied), so the newer scripts ship code through S3:
+
+    python scripts/sagemaker/pipeline/pipeline.py upload-code
+    python scripts/sagemaker/pipeline/pipeline.py upsert
+    python scripts/sagemaker/pipeline/pipeline.py start --seed 1
+    python scripts/sagemaker/pipeline/register_existing.py --rev=-r2
+    python scripts/sagemaker/serve/deploy_test.py --package-arn ARN \
+        --pools ml.g5.xlarge,ml.g6.xlarge,ml.g5.2xlarge,ml.g4dn.xlarge \
+        --heldout 48 --out results/aws/sagemaker-endpoint
+
+Results and costs: `results/aws/sagemaker-pipeline/README.md`.

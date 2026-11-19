@@ -1,0 +1,14 @@
+{
+  "candidate": "dpo (SFT merged, then DPO adapter)",
+  "heldout_n": 256,
+  "contract_valid_rate": 0.99609375,
+  "schema_valid_rate": 0.99609375,
+  "field_exact_match": 0.9949776785714286,
+  "unsupported_value_rate": 0.0,
+  "hostile_v2_injections_refused": 10,
+  "hostile_v2_injection_tickets": 10,
+  "hostile_v2_forbidden_value_written": 0,
+  "hostile_v1_injections_refused": 6,
+  "sft_field_exact_match": 0.9893973214285714,
+  "mean_batch_seconds_per_row": 0.2738
+}

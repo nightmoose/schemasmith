@@ -1,0 +1,64 @@
+{
+    "PipelineExecutionSteps": [
+        {
+            "StepName": "Register",
+            "StartTime": 1795111993.522,
+            "EndTime": 1795111995.15,
+            "StepStatus": "Succeeded",
+            "Metadata": {
+                "RegisterModel": {
+                    "Arn": "arn:aws:sagemaker:us-east-1:065614567889:model-package/lexsi-schemasmith/3"
+                }
+            },
+            "AttemptCount": 1
+        },
+        {
+            "StepName": "CheckContract",
+            "StartTime": 1795111992.796,
+            "EndTime": 1795111993.058,
+            "StepStatus": "Succeeded",
+            "Metadata": {
+                "Condition": {
+                    "Outcome": "True"
+                }
+            },
+            "AttemptCount": 1
+        },
+        {
+            "StepName": "PackageAndScore",
+            "StartTime": 1795111688.903,
+            "EndTime": 1795111992.365,
+            "StepStatus": "Succeeded",
+            "Metadata": {
+                "ProcessingJob": {
+                    "Arn": "arn:aws:sagemaker:us-east-1:065614567889:processing-job/pipelines-wq2oo1e7trdt-PackageAndScore-sDv1hXeEoA"
+                }
+            },
+            "AttemptCount": 1
+        },
+        {
+            "StepName": "Evaluate",
+            "StartTime": 1795111006.845,
+            "EndTime": 1795111688.383,
+            "StepStatus": "Succeeded",
+            "Metadata": {
+                "TrainingJob": {
+                    "Arn": "arn:aws:sagemaker:us-east-1:065614567889:training-job/pipelines-wq2oo1e7trdt-Evaluate-XgagCzGjzQ"
+                }
+            },
+            "AttemptCount": 1
+        },
+        {
+            "StepName": "Train",
+            "StartTime": 1795106094.254,
+            "EndTime": 1795111006.266,
+            "StepStatus": "Succeeded",
+            "Metadata": {
+                "TrainingJob": {
+                    "Arn": "arn:aws:sagemaker:us-east-1:065614567889:training-job/pipelines-wq2oo1e7trdt-Train-dtcmCkosWI"
+                }
+            },
+            "AttemptCount": 1
+        }
+    ]
+}
