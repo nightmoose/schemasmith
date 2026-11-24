@@ -13,3 +13,6 @@ data/notebook/
 reports/
 dist/
 .ipynb_checkpoints/
+paper/stage2/logs/
+paper/stage2/evals/
+paper/stage2/out/

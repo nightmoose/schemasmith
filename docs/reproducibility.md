@@ -55,6 +55,8 @@ schemasmith jobs dpo --namespace HF_USER
 schemasmith jobs eval --namespace HF_USER
 ```
 
+`nightmoose/schemasmith-src` is private and is not part of the release. To reproduce the jobs, build your own wheel from this repository and upload it to a repo you own (`HF_USER/schemasmith-src`), as below. The Stage 2 job scripts in `paper/stage2/jobs/` read the same wheel from the repo named in `SRC_REPO`.
+
 Launch only after the preview ceiling is acceptable. The job does not clone GitHub. It installs a wheel from the private Hub model repo `HF_USER/schemasmith-src`, read with the `HF_TOKEN` job secret. Build the wheel and upload it on the first launch:
 
 ```bash
@@ -100,3 +102,7 @@ The page opens on the recorded run from `space/recorded_runs.json`: real outputs
 ## What is not measured here
 
 The commands in the local-checks section produce no model metrics. The 64-ticket and 26-ticket numbers come from `results/compare.json` and `results/hostile.json`, written by the HF Jobs above. The later 256-ticket, 3-seed, and Guardrails numbers come from `results/aws/sagemaker/v2-summary.json`, `results/aws/sagemaker/eval-partial/eval_from_logs.json`, and `results/aws/guardrails/summary.json`. Do not copy the planted-failure checks or a gold-JSON pipeline check into the results table.
+
+## Stage 2 paper
+
+`paper/stage2/` holds the Stage 2 analysis scripts and Hugging Face Jobs scripts. `paper/stage2/reproduce.sh` recomputes every Stage 2 statistic on a CPU from the saved predictions in `results/aws/sagemaker/` and the `stage2/` folder of the `schemasmith-eval-logs` dataset. See `paper/stage2/README.md`.
