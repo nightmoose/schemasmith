@@ -125,15 +125,16 @@ def sh(c: paramiko.SSHClient, cmd: str, quiet: bool = False) -> tuple[int, str]:
 
 
 def setup(iid: str) -> None:
+    # SFTP paths are relative to the login user's home directory on the instance.
     c = ssh(iid)
     sftp = c.open_sftp()
-    sftp.put(str(Path(__file__).resolve().parents[1] / "dist" / WHEEL), f"/home/ubuntu/{WHEEL}")
+    sftp.put(str(Path(__file__).resolve().parents[1] / "dist" / WHEEL), WHEEL)
     token = os.environ.get("HF_TOKEN", "")
     if not token:
         sys.exit("HF_TOKEN not in the box environment")
-    with sftp.open("/home/ubuntu/.hf_token", "w") as fh:
+    with sftp.open(".hf_token", "w") as fh:
         fh.write(token)
-    sftp.chmod("/home/ubuntu/.hf_token", stat.S_IRUSR | stat.S_IWUSR)
+    sftp.chmod(".hf_token", stat.S_IRUSR | stat.S_IWUSR)
     sftp.close()
     script = f"""set -e
 mkdir -p ~/logs
@@ -147,7 +148,7 @@ pip install -q -c /tmp/c.txt ~/{WHEEL} {PINS} huggingface_hub 2>&1 | tail -3
 pip list 2>/dev/null | grep -iE '^(torch|transformers|trl|peft|bitsandbytes|aligntune|accelerate) '
 echo SETUP_DONE
 """
-    with c.open_sftp().open("/home/ubuntu/setup.sh", "w") as fh:
+    with c.open_sftp().open("setup.sh", "w") as fh:
         fh.write(script)
     code, _ = sh(
         c, "mkdir -p ~/logs; bash ~/setup.sh > ~/logs/setup.log 2>&1; tail -20 ~/logs/setup.log"
@@ -161,7 +162,7 @@ def run(iid: str, name: str, cmd: str) -> None:
         f". ~/venv/bin/activate && export HF_TOKEN=$(cat ~/.hf_token) WORK=$HOME/w "
         f"PYTHONUNBUFFERED=1 HF_HUB_ENABLE_HF_TRANSFER=0 && cd ~ && {cmd}; echo EXIT_CODE $?"
     )
-    with c.open_sftp().open(f"/home/ubuntu/logs/{name}.sh", "w") as fh:
+    with c.open_sftp().open(f"logs/{name}.sh", "w") as fh:
         fh.write(inner + "\n")
     wrapped = f"nohup bash ~/logs/{name}.sh > ~/logs/{name}.log 2>&1 < /dev/null &"
     sh(c, wrapped, quiet=True)
