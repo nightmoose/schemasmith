@@ -2,6 +2,12 @@
 
 Pinned versions are in `requirements-lexsi.txt`. None of these packages are copied into this repository.
 
+Cite the kit papers as well as the GitHub repos:
+
+- AlignTune: [arXiv:2602.09621](https://arxiv.org/abs/2602.09621), [repo](https://github.com/Lexsi-Labs/aligntune)
+- CuratorKIT: [arXiv:2606.21631](https://arxiv.org/abs/2606.21631), [repo](https://github.com/Lexsi-Labs/CuratorKIT)
+- AuditKIT: [arXiv:2610.22511](https://arxiv.org/abs/2610.22511), [repo](https://github.com/Lexsi-Labs/AuditKIT)
+
 ## Confirmed by running the package
 
 CuratorKIT **0.1.23** and AuditKIT **1.1.6** were installed in a throwaway directory and called. They are not imported when `schemasmith` imports.
