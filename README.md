@@ -8,7 +8,7 @@ Hostile test: on 26 hand-written tickets built to break it (prompt injections, c
 
 A later v2 training run (3 seeds, Amazon SageMaker, 256 held-out tickets) reached a 99.00% mean field-level exact match on the DPO adapters (best seed 99.44%), wrote 0% unsupported values, and refused 8.3 of 10 blind prompt injections (SFT mean 9.3 of 10). Those figures are small-n: 3 seeds and a 30-row hostile set. A Bedrock Guardrails wrapper around the earlier v1 DPO outputs cut injections followed and released from 5 of 10 to 3 of 10, with 0 false positives on 256 clean tickets. Details are in the v2 and Guardrails sections.
 
-Entry: Lexsi AI Safety & Alignment Hackathon, Track 1 (Fine-tuning and Data Curation), problem 5, structured output and extraction. Core model: Tiny Aya Global, `CohereLabs/tiny-aya-global`, the only model trained or scored. Lexsi tools: CuratorKIT (curation), AlignTune (SFT and DPO), AuditKIT (optional scorer).
+Entry: Lexsi AI Safety & Alignment Hackathon, Track 1 (Fine-tuning and Data Curation), problem 5, structured output and extraction. Core model: Tiny Aya Global, `CohereLabs/tiny-aya-global`, the only model trained or scored. Lexsi tools: CuratorKIT (curation; [paper](https://arxiv.org/abs/2606.21631)), AlignTune (SFT and DPO; [paper](https://arxiv.org/abs/2602.09621)), AuditKIT (optional scorer; [paper](https://arxiv.org/abs/2610.22511)).
 
 ## Results: held-out compare
 
@@ -263,7 +263,7 @@ Measured in the hostile job: one ticket at a time, greedy, on one L4, the DPO ad
 
 Problem: support tickets in several languages need to land as schema-valid JSON without invented ids or amounts. Approach: keep Tiny Aya Global as the core model, curate a small synthetic set with the contract as a filter, LoRA SFT and DPO with AlignTune, and let code, not the model, decide what is accepted.
 
-Repos: CuratorKIT curates and deduplicates. AlignTune runs SFT and DPO on the TRL backend. AuditKIT is the optional extra scorer next to the contract validator. Feature notes are in `docs/lexsi_apis.md`.
+Kits (papers and repos): CuratorKIT ([paper](https://arxiv.org/abs/2606.21631), [repo](https://github.com/Lexsi-Labs/CuratorKIT)) curates and deduplicates. AlignTune ([paper](https://arxiv.org/abs/2602.09621), [repo](https://github.com/Lexsi-Labs/aligntune)) runs SFT and DPO on the TRL backend. AuditKIT ([paper](https://arxiv.org/abs/2610.22511), [repo](https://github.com/Lexsi-Labs/AuditKIT)) is the optional extra scorer next to the contract validator. Feature notes are in `docs/lexsi_apis.md`.
 
 Core model and license: Tiny Aya Global, `CohereLabs/tiny-aya-global`, CC-BY-NC-4.0. No supplemental model.
 
@@ -283,7 +283,7 @@ Which Lexsi calls were executed, which were read from the 0.1.32 AlignTune sdist
 
 This repository’s original code is licensed under the **MIT License**.
 
-**Lexsi Labs tools** (CuratorKIT, AuditKIT, and related Lexsi source-available packages) are used only as **external, non-vendored dependencies** (see `requirements-lexsi.txt`). Their source is **not copied** into this repository. Those tools remain under the Lexsi Labs Source Available License (LSAL). This use is a **hackathon-only exception** approved for the Lexsi AI Safety & Alignment Hackathon entry.
+**Lexsi Labs tools** (CuratorKIT, AlignTune, AuditKIT, and related Lexsi source-available packages; papers: [CuratorKIT](https://arxiv.org/abs/2606.21631), [AlignTune](https://arxiv.org/abs/2602.09621), [AuditKIT](https://arxiv.org/abs/2610.22511)) are used only as **external, non-vendored dependencies** (see `requirements-lexsi.txt`). Their source is **not copied** into this repository. Those tools remain under the Lexsi Labs Source Available License (LSAL). This use is a **hackathon-only exception** approved for the Lexsi AI Safety & Alignment Hackathon entry.
 
 **Model weights:** Cohere Tiny Aya / Aya family weights used here are **CC-BY-NC-4.0** (non-commercial). See the model card on Hugging Face for terms.
 

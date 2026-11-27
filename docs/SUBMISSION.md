@@ -9,7 +9,7 @@ Exact text for the Lexsi AI Safety & Alignment Hackathon form and gallery card. 
 - **Members:** Alex Suarez (GitHub @nightmoose), solo. Use the members field for this, not the title.
 - **Track:** Track 1, Fine-tuning and Data Curation. Problem 5, structured output and extraction.
 - **Core model:** Tiny Aya Global, `CohereLabs/tiny-aya-global`
-- **Lexsi repos used:** CuratorKIT, AlignTune (SFT and DPO), AuditKIT (optional scorer)
+- **Lexsi kits used:** CuratorKIT ([paper](https://arxiv.org/abs/2606.21631), [repo](https://github.com/Lexsi-Labs/CuratorKIT)), AlignTune ([paper](https://arxiv.org/abs/2602.09621), [repo](https://github.com/Lexsi-Labs/aligntune)), AuditKIT ([paper](https://arxiv.org/abs/2610.22511), [repo](https://github.com/Lexsi-Labs/AuditKIT)) (optional scorer)
 - **Tags:** Tiny Aya, CuratorKIT, AlignTune, AuditKIT, Hugging Face Jobs/Hub, PyTorch, PEFT, Gradio, Amazon SageMaker, Amazon EC2, Amazon Bedrock (Nova + Guardrails)
 - **Tagline (one line):** Made-up order refs and refunds in ticket JSON: 32.9% to 0% on 64 held-out tickets; v2 DPO mean 99.00% field match (best seed 99.44%) on 256, with code, not the model, deciding what is accepted.
 
